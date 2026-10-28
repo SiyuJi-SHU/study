@@ -125,6 +125,7 @@
   mark{background:linear-gradient(transparent 58%, #ffe8a3 58%);
     padding:0 2px;border-radius:2px;color:inherit;font-weight:600}
 
+  .bar{display:none}
   .ans{transition:filter .18s ease}
   .test .say p, .test .projline, .test .ask li, .test .gapline,
   .test .samptext, .test .sample pre, .test .tbl{filter:blur(5px)}
@@ -836,7 +837,7 @@ class LoRALinear(nn.Module):
   var btn=document.getElementById('mode');
   var hint=document.getElementById('hint');
   var list=document.getElementById('list');
-  wrap.classList.add('test');
+  wrap.classList.remove('test');
   function sync(){
     var testing=wrap.classList.contains('test');
     btn.textContent=testing?'自测模式':'全部显示';
