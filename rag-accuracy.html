@@ -155,12 +155,17 @@
       <header class="chead"><span class="num">1</span><h2 class="q">RAG 怎么保证准确</h2></header>
       <section class="grp first">
         <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
-        <div class="anchorbox"><span class="atag">一句话</span><p><mark>不可能 100%</mark>，只能把出错概率压低；三层是架构、防护、兜底</p></div>
+        <div class="anchorbox"><span class="atag">一句话</span><p>不可能 100%；<mark>架构管输入，防护管输出，兜底管最坏情况</mark></p></div>
         <div class="plans">
-          <div class="prow phead"><span>方案</span><span>什么规模用</span><span>代价</span></div>
-          <div class="prow"><span class="pc">架构层</span><span>混合检索、切片、元数据；生成严格依据上下文、temperature 0、输出 JSON</span><span>我做了双路 RRF、Rerank、submit_answer 结构化输出</span></div>
-          <div class="prow"><span class="pc">防护层</span><span>第二个 LLM 复核幻觉、界面溯源、关键词库校验</span><span>我做了程序回填引用、版本和数字校验；复核没做</span></div>
-          <div class="prow"><span class="pc">兜底层</span><span>语义分数阈值拒答、人工复核、全链路日志</span><span>我做了 rerankScore 0.15 阈值、无证据就说明、run_events 留痕</span></div>
+          <div class="prow phead"><span>层</span><span>通用做法</span><span>我的项目</span></div>
+          <div class="prow"><span class="pc">架构·检索</span><span>混合检索、切片保完整、元数据打标</span><span>双路召回、按标题切分、带版本和位置</span></div>
+          <div class="prow"><span class="pc">架构·生成</span><span>严格依据上下文、温度 0、结构化输出</span><span>强制取证、低温、结构化答案</span></div>
+          <div class="prow"><span class="pc">防护</span><span>第二个模型复核、界面溯源、关键词库</span><span>引用由程序回填并校验；复核和关键词库没有</span></div>
+          <div class="prow"><span class="pc">兜底</span><span>分数阈值拒答、人工复核、全链路日志</span><span>低分直接过滤、没证据就说明、全程留痕</span></div>
+        </div>
+        <div class="note">
+          <div class="notetitle">补充</div>
+          <p>结构化输出只保证格式和引用能校验，不保证措辞是原文。我约束的是引用，不是措辞。</p>
         </div>
         <div class="lanes">
         </div>
@@ -168,29 +173,24 @@
       <section class="grp">
         <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>这题开口先给结论：不可能保证 100%。模型是概率的，检索有召回上限，文档本身也可能错，调参数解决不了。</p>
-          <p>能做的是工程和业务三层。</p>
-          <p>架构层管住输入。检索上做混合，稠密加稀疏，切片保上下文完整，元数据打标。生成上要求严格依据上下文，temperature 设 0，甚至不让模型自由写文案，直接输出结构化 JSON，内容来自原文。</p>
-          <p>防护层管住输出。可以再加一个模型做幻觉复核，比对回答和原文；界面上做溯源，让用户点开看原文；医疗法务这类术语要求严的行业，可以建关键词库，命中就核对描述和解释。</p>
-          <p>兜底层管住最坏情况。检索分数设阈值，低于阈值直接拒答，不硬编；高风险场景加人工复核；全链路日志，出问题能追到是哪一步。</p>
-          <p>我项目里：架构层是双路召回加 RRF 加 Rerank，生成走 submit_answer 结构化输出，temperature 0；防护层是引用由程序从原文回填，再校验 Evidence ID、版本、句子编号和数字；兜底层是 rerankScore 低于 0.15 的文档直接过滤，没证据就说明本次没找到，全过程写 run_events。第二个模型复核和人工复核没做，这是缺口。</p>
+          <p>先给结论：不可能保证 100%。大模型天然有随机性、有幻觉，检索有召回上限，文档本身也可能错。调参数解决不了，只能从工程和业务层面把出错概率压低。我按三层说。</p>
+          <p>第一层是架构层，管输入。检索上做混合：稠密向量管语义，稀疏管精确，两个一起上，同时覆盖语义和专有词；切片按标题层级切，超过 1200 字再切，留 200 重叠，保证一个概念不被切断；每个分片打上元数据，文档 ID、版本、位置，后面能过滤也能回查。生成上systemprompt上写明要求严格依据上下文，不许自己编；温度调到 0，把随机性压到最低；输出走结构化格式，字段固定，减少自由发挥。</p>
+          <p>具体做法是三层约束。第一，字段固定：只收答案正文、引用列表、缺失项三样，模型不能自己加字段。第二，引用只收指针：不让模型抄原文，只允许给“证据编号加句子编号”。第三，程序回填校验：拿编号回原文取句子，再查编号存在、版本一致、位置没越界；能修的修，修不了的标成缺失。</p>
+          <p>所以结构化管的是引用能不能对上，不管措辞是不是原文。</p>
+          <p>第二层是防护层，管输出。通用做法是模型之后再挂一个模型做幻觉检查，比对回答和原文；界面上做可视化溯源；医疗法务这种术语严格的行业，再建关键词库核对术语。我做了溯源：引用由程序回原文取，再校验存在、版本和位置对得上。复核模型和关键词库我没做。</p>
+          <p>第三层是兜底，管最坏情况。检索分数设阈值，低于阈值直接拒答，不硬编；高风险场景，重要的场景比如医院报告aent这种加人工复核；全链路日志，出问题能追到哪一步。我做了阈值过滤和日志；人工复核没有，因为我的场景还没到医疗法务那种要求。</p>
+          <p>一句话：架构管输入，防护管输出，兜底管最坏情况。</p>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">3</span><span class="gname">我项目里的代码</span></div>
-        <div class="sample ans">
-          <pre><code>chunks.stream().filter(c -&gt; c.rerankScore() != null &amp;&amp; c.rerankScore() &gt;= 0.15)</code></pre>
-        </div>
-      </section>
-      <section class="grp">
-        <div class="gh"><span class="gnum">4</span><span class="gname">可能被追问</span></div>
+        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
         <ul class="ask ans">
-            <li>为什么 temperature 0 也不能保证？→ 概率模型加检索上限，加文档本身可能错，参数只降低随机性。</li>
-            <li>第二个模型复核值不值？→ 成本和延迟翻倍，只在高风险领域值得，不能全站默认开。</li>
-            <li>怎么拒答？→ rerank 分数阈值加无证据说明，不能既没证据又硬答。</li>
-            <li>引用怎么防串版本？→ Evidence ID 用 documentId、version、start、end 做哈希，版本变了 ID 就变。</li>
+            <li>温度 0 能保证不胡说吗？→ 不能。它只降低随机性，压幻觉靠的是强制取证和引用校验。</li>
+            <li>第二个模型复核值不值？→ 成本和延迟都翻倍，只适合高风险场景。</li>
+            <li>结构化输出能保证内容对吗？→ 不能保证措辞，只能保证引用可追溯、字段可校验。</li>
+            <li>怎么拒答？→ 检索分数低于阈值就过滤，没证据就说明未找到，不能硬答。</li>
         </ul>
-        <div class="gapline ans"><span class="gtag">缺口</span><p>没做第二模型复核、关键词库和人工复核；只有程序侧校验。</p></div>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没做第二模型复核、术语关键词库和人工复核；只有程序侧校验和评测阶段的 Judge。</p></div>
       </section>
     </article>
   </div>
