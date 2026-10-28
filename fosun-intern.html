@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通识背记卡</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --green:#1c6b44; --green-bg:#edf7f1; --green-bar:#2f9e63;
+    --blue:#1f5a86; --blue-bg:#eef4fb; --blue-bar:#3b82b8;
+    --amber:#89530f; --amber-bg:#fdf4e6; --amber-bar:#d08a2a;
+    --violet:#423a75; --violet-bg:#f3f1fa; --violet-bar:#6b5fb0;
+    --code-bg:#f5f4ef;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 80px}
+
+  .top{position:sticky;top:0;z-index:9;background:var(--bg);padding:10px 0 12px;
+    border-bottom:1px solid var(--line);margin-bottom:16px}
+  .toprow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+  .bar{display:flex;align-items:center;gap:10px}
+  button{font:inherit;font-size:12.5px;font-weight:600;padding:7px 15px;border-radius:999px;
+    cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+  button.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .hint{font-size:11.5px;color:var(--muted)}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:8px}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:1px}
+  .lg-g{background:var(--green-bar)} .lg-v{background:var(--violet-bar)}
+  .lg-b{background:var(--blue-bar)} .lg-a{background:var(--amber-bar)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:20px 20px 18px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.035)}
+
+  .chead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .num{flex:none;font-size:12px;font-weight:700;color:#fff;background:var(--green);
+    border-radius:8px;padding:4px 9px;letter-spacing:.5px}
+  .q{font-size:17.5px;font-weight:700;line-height:1.4;margin:0}
+
+  .grp{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+  .grp.first{border-top:none;padding-top:0;margin-top:0}
+  .gh{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .gnum{flex:none;width:19px;height:19px;border-radius:50%;background:var(--violet-bg);
+    color:var(--violet);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .gname{font-size:12.5px;font-weight:700;letter-spacing:1px;color:var(--ink)}
+  .gsub{font-size:11px;color:var(--muted)}
+
+  .anchorbox{background:var(--green-bg);border-left:4px solid var(--green-bar);
+    border-radius:12px;padding:13px 15px}
+  .atag{display:block;font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--green);margin-bottom:5px}
+  .anchorbox p{margin:0;font-size:17px;font-weight:700;color:var(--green);line-height:1.65}
+
+  .lanes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
+  .lane{background:var(--violet-bg);border-left:4px solid var(--violet-bar);
+    border-radius:12px;padding:12px 12px 13px}
+  .lanehead{font-size:10.5px;font-weight:700;color:var(--violet);letter-spacing:1.2px;margin-bottom:8px}
+  .node{background:#fff;border:1px solid #ded9f0;border-radius:9px;padding:8px 10px;
+    font-size:13px;line-height:1.55;color:var(--violet)}
+  .node.hot{border-color:var(--violet-bar);font-weight:600;box-shadow:0 0 0 2px rgba(107,95,176,.12)}
+  .dash{text-align:center;color:var(--violet-bar);font-size:12px;line-height:1.4;opacity:.65}
+
+  .chain{margin-top:11px;background:#faf9f5;border:1px dashed var(--line);
+    border-radius:12px;padding:11px 12px}
+  .chaintitle{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:1.2px;margin-bottom:8px}
+  .chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;
+    padding:4px 10px;font-size:12.5px;line-height:1.5;color:#3b3b35}
+  .ar{color:var(--muted);font-size:11px}
+
+  .say p{margin:0 0 12px;font-size:15.5px;line-height:1.9}
+  .say p:last-child{margin-bottom:0}
+
+  .sample{margin-bottom:10px}
+  .samptext{font-size:13px;color:#3b3b35;margin:10px 0 6px;line-height:1.7}
+  pre{margin:0 0 10px;background:var(--code-bg);border:1px solid var(--line);
+    border-radius:10px;padding:11px 13px;overflow-x:auto}
+  code{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    font-size:11.8px;line-height:1.65;color:#3b3b35;white-space:pre}
+
+  .projline{display:flex;gap:10px;align-items:flex-start;background:var(--blue-bg);
+    border-left:4px solid var(--blue-bar);border-radius:12px;padding:12px 14px}
+  .ptag{flex:none;font-size:10.5px;font-weight:700;letter-spacing:1.2px;color:var(--blue);padding-top:3px}
+  .projline p{margin:0 0 8px;font-size:14px;line-height:1.8;color:var(--blue)}
+  .projline p:last-child{margin-bottom:0}
+
+  .ask{margin:0 0 10px;padding:0 0 0 20px}
+  .ask li{font-size:14px;line-height:1.8;margin-bottom:8px;color:#3b3b35}
+  .ask li:last-child{margin-bottom:0}
+
+  .gapline{display:flex;gap:10px;align-items:flex-start;background:var(--amber-bg);
+    border-left:4px solid var(--amber-bar);border-radius:12px;padding:12px 14px}
+  .gtag{flex:none;font-size:10.5px;font-weight:700;letter-spacing:1.2px;color:var(--amber);padding-top:2px}
+  .gapline p{margin:0;font-size:13.5px;line-height:1.75;color:var(--amber)}
+
+  .plans{margin-top:11px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .prow{display:grid;grid-template-columns:112px 1fr 1fr;gap:10px;padding:9px 12px;
+    font-size:13px;line-height:1.65;color:#3b3b35;border-top:1px dashed var(--line)}
+  .prow:first-child{border-top:none}
+  .phead{background:#faf9f5;color:var(--muted);font-size:10.5px;font-weight:700;letter-spacing:1px}
+  .pc{color:var(--violet);font-weight:700}
+
+  .why{margin-top:11px;background:#fbfaf5;border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .whytitle{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:1.2px;margin-bottom:7px}
+  .wrow{display:flex;gap:10px;padding:3px 0;font-size:13px;line-height:1.7}
+  .wk{flex:none;width:52px;color:var(--violet);font-weight:700}
+  .wv{color:#3b3b35}
+
+  .note{margin-top:11px;background:#f6f4fb;border-left:4px solid var(--violet-bar);
+    border-radius:12px;padding:12px 14px}
+  .notetitle{font-size:10.5px;font-weight:700;color:var(--violet);letter-spacing:1.2px;margin-bottom:7px}
+  .note p{margin:0 0 8px;font-size:13.5px;line-height:1.8;color:#3b3b35}
+  .note p:last-child{margin-bottom:0}
+
+  .map{margin-top:11px;background:#fbfaf5;border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .maptitle{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:1.2px;margin-bottom:7px}
+  .mrow{display:flex;gap:10px;padding:3px 0;font-size:13px;line-height:1.7}
+  .mk{flex:none;width:92px;color:var(--violet);font-weight:700}
+  .mv{color:#3b3b35}
+
+  mark{background:linear-gradient(transparent 58%, #ffe8a3 58%);
+    padding:0 2px;border-radius:2px;color:inherit;font-weight:600}
+
+  @media (max-width:640px){ .lanes{grid-template-columns:1fr} }
+  @media (max-width:520px){
+    .prow{grid-template-columns:84px 1fr;row-gap:2px}
+    .prow span:nth-child(3){grid-column:2}
+    .wrap{padding:14px 12px 70px}
+    .card{padding:16px 15px 14px;border-radius:16px}
+    .q{font-size:16px} .anchorbox p{font-size:16px}
+    .say p{font-size:15px} .node{font-size:12.5px}
+    code{font-size:11px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="top">
+    <div class="toprow">
+      <h1>背记卡 · 复星实习：Dify 落地与验收</h1>
+    </div>
+    <div class="legend">
+      <span><i class="lg-v"></i>骨架</span>
+      <span><i class="lg-g"></i>锚</span>
+      <span><i class="lg-b"></i>项目</span>
+      <span><i class="lg-a"></i>缺口</span>
+    </div>
+  </div>
+  <div id="list">
+    <article class="card">
+      <header class="chead"><span class="num">1</span><h2 class="q">复星实习：Dify 落地与验收</h2></header>
+      <section class="grp first">
+        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
+        <div class="anchorbox"><span class="atag">一句话</span><p>三件事 → 链路（Dify + 代理 + MySQL）→ Excel 例子 → 四层定位 → 边界</p></div>
+        <div class="lanes">
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
+        <div class="say ans">
+          <p>我在复星主要做 AI 应用的落地和验证，三件事：Dify 侧的应用配置和知识库维护，管理后台和聊天端的功能迭代，发布和 UAT 验收。</p>
+          <p>乡村医生助手这条链路，Dify 负责应用编排、知识库和工作流，外面聊天端和管理后台通过接口代理调 Dify，MySQL 存应用配置和访问日志。我负责把链路跑通，出问题定位到哪一段。</p>
+          <p>举个例子，地域看板加四个 Excel 导出，我先本机跑测试和 TypeScript 检查，再到 UAT 验页面、接口、静态资源和导出文件，确认表头行数对得上，最后走 GitLab 到 Jenkins 发布，有问题用 revert 回退。</p>
+          <p>问答效果不好，我不先怪模型，按四层看：知识库的文档质量和切分、检索有没有召回、Prompt 和上下文、入口和权限。Dify 侧用命中测试和问答日志定位，必要时补测试问题、人工抽检。</p>
+          <p>边界要讲清：模型、Prompt、解析工作流主要在 Dify 侧配置，我负责集成、配置、发布、验收，没改 Dify 内核。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+            <li>效果不好先查哪？→ 不先怪模型，四层从上往下：文档切分、召回、Prompt 上下文、入口权限。</li>
+            <li>你动过 Dify 内核吗？→ 没有，边界在集成和验收，不在改内核。</li>
+            <li>用什么工具验证？→ Dify 命中测试加问答日志，必要时补测试问题、人工抽检。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>容易被质疑"只是配置 Dify 没写代码"，要用"链路跑通 + 四层定位 + 可验收结论"把工程能力讲出来。</p></div>
+      </section>
+    </article>
+  </div>
+</div>
+</body>
+</html>
