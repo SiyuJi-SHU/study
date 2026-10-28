@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f6f2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>面试背记卡</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --green:#1c6b44; --green-bg:#edf7f1; --blue:#1f5a86; --amber:#89530f; --violet:#423a75;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:640px;margin:0 auto;padding:26px 16px calc(40px + env(safe-area-inset-bottom))}
+  header{margin-bottom:20px}
+  h1{font-size:20px;margin:0 0 6px;font-weight:700;letter-spacing:.3px}
+  .sub{font-size:12.5px;color:var(--muted)}
+  .group{font-size:11.5px;color:var(--muted);letter-spacing:.8px;margin:22px 0 10px;font-weight:600}
+  a.card{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:15px 16px;margin-bottom:10px;text-decoration:none;color:inherit;box-shadow:0 2px 6px rgba(0,0,0,.035);
+    transition:transform .12s ease}
+  a.card:active{transform:scale(.985)}
+  .num{flex:0 0 30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:#fff}
+  .n-g{background:#2f9e63} .n-b{background:#3b82b8} .n-a{background:#d08a2a} .n-v{background:#6b5fb0}
+  .txt{min-width:0;flex:1}
+  .t{font-size:14.5px;font-weight:600;margin-bottom:3px}
+  .d{font-size:11.5px;color:var(--muted);line-height:1.45}
+  .arrow{color:#c9c5bb;font-size:16px;flex:0 0 auto}
+  footer{margin-top:26px;text-align:center;font-size:11px;color:#a9a59b}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>面试背记卡</h1>
+    <div class="sub">通识口径 + 项目落地 + 追问预判</div>
+  </header>
+
+  <div class="group">基础概念</div>
+  <a class="card" href="function-call.html">
+    <div class="num n-g">01</div>
+    <div class="txt"><div class="t">Function Call</div><div class="d">工具调用方式、Schema 描述、意图路由分工</div></div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="card" href="intent-routing.html">
+    <div class="num n-g">02</div>
+    <div class="txt"><div class="t">意图识别怎么做</div><div class="d">规则、分类模型、LLM 路由与兜底策略</div></div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="card" href="context-management.html">
+    <div class="num n-g">03</div>
+    <div class="txt"><div class="t">上下文怎么管理</div><div class="d">窗口预算、压缩、检索注入与截断顺序</div></div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="card" href="three-modes.html">
+    <div class="num n-g">04</div>
+    <div class="txt"><div class="t">三种行为模式</div><div class="d">ReAct、Plan、Workflow 的执行与选择</div></div>
+    <div class="arrow">›</div>
+  </a>
+
+  <div class="group">RAG</div>
+  <a class="card" href="rag-recall.html">
+    <div class="num n-b">05</div>
+    <div class="txt"><div class="t">RAG 召回怎么做</div><div class="d">向量、BM25、混合检索与 RRF 融合</div></div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="card" href="rag-accuracy.html">
+    <div class="num n-b">06</div>
+    <div class="txt"><div class="t">RAG 怎么保证准确</div><div class="d">Rerank、阈值、引用校验与评测指标</div></div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="card" href="rag-changes.html">
+    <div class="num n-b">07</div>
+    <div class="txt"><div class="t">RAG 变动数据处理</div><div class="d">增量更新、失效标记与版本一致性</div></div>
+    <div class="arrow">›</div>
+  </a>
+
+  <div class="group">模型</div>
+  <a class="card" href="finetune.html">
+    <div class="num n-v">08</div>
+    <div class="txt"><div class="t">微调背记卡</div><div class="d">LoRA、QLoRA、数据构造与评测对比</div></div>
+    <div class="arrow">›</div>
+  </a>
+
+  <footer>个人学习资料</footer>
+</div>
+</body>
+</html>
