@@ -9,84 +9,120 @@
 <style>
   :root{
     --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
-    --green:#1c6b44; --green-bg:#edf7f1; --blue:#1f5a86; --amber:#89530f; --violet:#423a75;
+    --g1:#2f9e63; --g2:#3b82b8; --g3:#c07b22; --g4:#6b5fb0; --g5:#b3556b; --g6:#2f8f8a;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0}
   body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:640px;margin:0 auto;padding:26px 16px calc(40px + env(safe-area-inset-bottom))}
-  header{margin-bottom:20px}
-  h1{font-size:20px;margin:0 0 6px;font-weight:700;letter-spacing:.3px}
-  .sub{font-size:12.5px;color:var(--muted)}
-  .group{font-size:11.5px;color:var(--muted);letter-spacing:.8px;margin:22px 0 10px;font-weight:600}
-  a.card{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;
-    padding:15px 16px;margin-bottom:10px;text-decoration:none;color:inherit;box-shadow:0 2px 6px rgba(0,0,0,.035);
-    transition:transform .12s ease}
+  .wrap{max-width:660px;margin:0 auto;padding:0 16px calc(48px + env(safe-area-inset-bottom))}
+
+  .top{position:sticky;top:0;z-index:9;background:var(--bg);padding:calc(14px + env(safe-area-inset-top)) 0 10px}
+  .hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+  h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.3px}
+  .cnt{font-size:11.5px;color:var(--muted)}
+  .search{width:100%;font:inherit;font-size:14px;padding:10px 14px;border-radius:12px;
+    border:1px solid var(--line);background:var(--card);color:var(--ink);outline:none}
+  .search:focus{border-color:#c9c4b8}
+  .search::placeholder{color:#b3afa5}
+
+  .group{font-size:11.5px;color:var(--muted);letter-spacing:1px;margin:24px 0 10px;font-weight:600}
+  a.card{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:14px 16px;margin-bottom:9px;text-decoration:none;color:inherit;
+    box-shadow:0 2px 6px rgba(0,0,0,.035);transition:transform .1s ease}
   a.card:active{transform:scale(.985)}
-  .num{flex:0 0 30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  .num{flex:0 0 32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;color:#fff}
-  .n-g{background:#2f9e63} .n-b{background:#3b82b8} .n-a{background:#d08a2a} .n-v{background:#6b5fb0}
   .txt{min-width:0;flex:1}
-  .t{font-size:14.5px;font-weight:600;margin-bottom:3px}
+  .t{font-size:14.5px;font-weight:600;margin-bottom:2px}
   .d{font-size:11.5px;color:var(--muted);line-height:1.45}
   .arrow{color:#c9c5bb;font-size:16px;flex:0 0 auto}
-  footer{margin-top:26px;text-align:center;font-size:11px;color:#a9a59b}
+  .empty{display:none;text-align:center;color:var(--muted);font-size:13px;padding:60px 0}
+  footer{margin-top:28px;text-align:center;font-size:11px;color:#a9a59b}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>面试背记卡</h1>
-    <div class="sub">通识口径 + 项目落地 + 追问预判</div>
-  </header>
+  <div class="top">
+    <div class="hd">
+      <h1>面试背记卡</h1>
+      <div class="cnt">34 张</div>
+    </div>
+    <input class="search" id="q" type="search" placeholder="搜索：RAG / SSE / 评测 / PostgreSQL…" autocomplete="off">
+  </div>
 
-  <div class="group">基础概念</div>
-  <a class="card" href="function-call.html">
-    <div class="num n-g">01</div>
-    <div class="txt"><div class="t">Function Call</div><div class="d">工具调用方式、Schema 描述、意图路由分工</div></div>
-    <div class="arrow">›</div>
-  </a>
-  <a class="card" href="intent-routing.html">
-    <div class="num n-g">02</div>
-    <div class="txt"><div class="t">意图识别怎么做</div><div class="d">规则、分类模型、LLM 路由与兜底策略</div></div>
-    <div class="arrow">›</div>
-  </a>
-  <a class="card" href="context-management.html">
-    <div class="num n-g">03</div>
-    <div class="txt"><div class="t">上下文怎么管理</div><div class="d">窗口预算、压缩、检索注入与截断顺序</div></div>
-    <div class="arrow">›</div>
-  </a>
-  <a class="card" href="three-modes.html">
-    <div class="num n-g">04</div>
-    <div class="txt"><div class="t">三种行为模式</div><div class="d">ReAct、Plan、Workflow 的执行与选择</div></div>
-    <div class="arrow">›</div>
-  </a>
+  <div class="group">开场与项目</div>
+  <a class="card" href="self-intro.html"><div class="num" style="background:var(--g1)">01</div><div class="txt"><div class="t">自我介绍</div><div class="d">90 秒结构 · 项目主线 · 少而准</div></div><div class="arrow">›</div></a>
+  <a class="card" href="capability-map.html"><div class="num" style="background:var(--g1)">02</div><div class="txt"><div class="t">能力地图</div><div class="d">会什么 · 讲到哪一层 · 边界</div></div><div class="arrow">›</div></a>
+  <a class="card" href="fosun-intern.html"><div class="num" style="background:var(--g1)">03</div><div class="txt"><div class="t">复星实习</div><div class="d">真实职责 · 交付物 · 与自研区分</div></div><div class="arrow">›</div></a>
+  <a class="card" href="why-build-own.html"><div class="num" style="background:var(--g1)">04</div><div class="txt"><div class="t">为什么自研</div><div class="d">Dify 解决"搭起来" · 自研解决可归因</div></div><div class="arrow">›</div></a>
+
+  <div class="group">Agent 基础</div>
+  <a class="card" href="ai-app-dev.html"><div class="num" style="background:var(--g2)">05</div><div class="txt"><div class="t">什么是 AI 应用开发</div><div class="d">与传统开发的差异 · 工程落点</div></div><div class="arrow">›</div></a>
+  <a class="card" href="function-call.html"><div class="num" style="background:var(--g2)">06</div><div class="txt"><div class="t">Function Call</div><div class="d">工具调用方式 · 与 MCP 的分工</div></div><div class="arrow">›</div></a>
+  <a class="card" href="intent-routing.html"><div class="num" style="background:var(--g2)">07</div><div class="txt"><div class="t">意图识别怎么做</div><div class="d">规则 · 分类模型 · LLM 路由 · 兜底</div></div><div class="arrow">›</div></a>
+  <a class="card" href="context-management.html"><div class="num" style="background:var(--g2)">08</div><div class="txt"><div class="t">上下文怎么管理</div><div class="d">预算 · 压缩 · 注入顺序 · 截断</div></div><div class="arrow">›</div></a>
+  <a class="card" href="three-modes.html"><div class="num" style="background:var(--g2)">09</div><div class="txt"><div class="t">三种行为模式</div><div class="d">ReAct · Plan · Workflow 怎么选</div></div><div class="arrow">›</div></a>
+  <a class="card" href="runtime.html"><div class="num" style="background:var(--g2)">10</div><div class="txt"><div class="t">Runtime 与 Harness</div><div class="d">执行引擎 · 状态与事件循环</div></div><div class="arrow">›</div></a>
+  <a class="card" href="harness.html"><div class="num" style="background:var(--g2)">11</div><div class="txt"><div class="t">Harness 与编排</div><div class="d">编排层职责 · 与 Runtime 的边界</div></div><div class="arrow">›</div></a>
+  <a class="card" href="session-run.html"><div class="num" style="background:var(--g2)">12</div><div class="txt"><div class="t">Session 与 Run</div><div class="d">会话与单次运行 · 状态隔离</div></div><div class="arrow">›</div></a>
+  <a class="card" href="request-chain.html"><div class="num" style="background:var(--g2)">13</div><div class="txt"><div class="t">一次请求链路</div><div class="d">从输入到答案的完整路径</div></div><div class="arrow">›</div></a>
+  <a class="card" href="sse.html"><div class="num" style="background:var(--g2)">14</div><div class="txt"><div class="t">什么是 SSE</div><div class="d">流式事件协议 · 与 WebSocket 对比</div></div><div class="arrow">›</div></a>
+  <a class="card" href="sse-reconnect.html"><div class="num" style="background:var(--g2)">15</div><div class="txt"><div class="t">SSE 断线续接</div><div class="d">事件补偿 · 幂等 · 心跳</div></div><div class="arrow">›</div></a>
+  <a class="card" href="mcp.html"><div class="num" style="background:var(--g2)">16</div><div class="txt"><div class="t">什么是 MCP</div><div class="d">协议定位 · 工具与上下文接入</div></div><div class="arrow">›</div></a>
+  <a class="card" href="a2a.html"><div class="num" style="background:var(--g2)">17</div><div class="txt"><div class="t">A2A 是什么</div><div class="d">Agent 间协作 · 与 MCP 的区别</div></div><div class="arrow">›</div></a>
+  <a class="card" href="langgraph.html"><div class="num" style="background:var(--g2)">18</div><div class="txt"><div class="t">LangGraph 与对照</div><div class="d">图编排 · 与自研方案的差异</div></div><div class="arrow">›</div></a>
 
   <div class="group">RAG</div>
-  <a class="card" href="rag-recall.html">
-    <div class="num n-b">05</div>
-    <div class="txt"><div class="t">RAG 召回怎么做</div><div class="d">向量、BM25、混合检索与 RRF 融合</div></div>
-    <div class="arrow">›</div>
-  </a>
-  <a class="card" href="rag-accuracy.html">
-    <div class="num n-b">06</div>
-    <div class="txt"><div class="t">RAG 怎么保证准确</div><div class="d">Rerank、阈值、引用校验与评测指标</div></div>
-    <div class="arrow">›</div>
-  </a>
-  <a class="card" href="rag-changes.html">
-    <div class="num n-b">07</div>
-    <div class="txt"><div class="t">RAG 变动数据处理</div><div class="d">增量更新、失效标记与版本一致性</div></div>
-    <div class="arrow">›</div>
-  </a>
+  <a class="card" href="rag-recall.html"><div class="num" style="background:var(--g3)">19</div><div class="txt"><div class="t">RAG 是什么与召回</div><div class="d">切分 · 向量 · BM25 · RRF 融合</div></div><div class="arrow">›</div></a>
+  <a class="card" href="rerank.html"><div class="num" style="background:var(--g3)">20</div><div class="txt"><div class="t">Rerank 有什么用</div><div class="d">精排 · 阈值 · 截断策略</div></div><div class="arrow">›</div></a>
+  <a class="card" href="rag-accuracy.html"><div class="num" style="background:var(--g3)">21</div><div class="txt"><div class="t">RAG 怎么保证准确</div><div class="d">引用校验 · 拒答 · 证据链</div></div><div class="arrow">›</div></a>
+  <a class="card" href="rag-changes.html"><div class="num" style="background:var(--g3)">22</div><div class="txt"><div class="t">RAG 变动数据</div><div class="d">增量更新 · 失效标记 · 版本一致</div></div><div class="arrow">›</div></a>
+  <a class="card" href="no-prompt-tweak.html"><div class="num" style="background:var(--g3)">23</div><div class="txt"><div class="t">不改提示词怎么更准</div><div class="d">检索侧与工程侧改进路径</div></div><div class="arrow">›</div></a>
+  <a class="card" href="context-window.html"><div class="num" style="background:var(--g3)">24</div><div class="txt"><div class="t">扩窗与引用</div><div class="d">窗口变大后 · 引用与定位</div></div><div class="arrow">›</div></a>
+  <a class="card" href="hallucination.html"><div class="num" style="background:var(--g3)">25</div><div class="txt"><div class="t">幻觉与提示注入</div><div class="d">成因 · 防御 · 边界校验</div></div><div class="arrow">›</div></a>
+
+  <div class="group">工程与数据</div>
+  <a class="card" href="postgresql.html"><div class="num" style="background:var(--g4)">26</div><div class="txt"><div class="t">PostgreSQL 建模</div><div class="d">表设计 · 索引 · 事务与并发</div></div><div class="arrow">›</div></a>
+  <a class="card" href="where-data.html"><div class="num" style="background:var(--g4)">27</div><div class="txt"><div class="t">数据都存在哪</div><div class="d">存储分层 · 各类数据落点</div></div><div class="arrow">›</div></a>
+  <a class="card" href="docker.html"><div class="num" style="background:var(--g4)">28</div><div class="txt"><div class="t">Docker 基础</div><div class="d">镜像 · Compose · 排障</div></div><div class="arrow">›</div></a>
+  <a class="card" href="auth.html"><div class="num" style="background:var(--g4)">29</div><div class="txt"><div class="t">认证与权限</div><div class="d">登录态 · 权限边界 · 越权防护</div></div><div class="arrow">›</div></a>
+  <a class="card" href="scaling.html"><div class="num" style="background:var(--g4)">30</div><div class="txt"><div class="t">扩容瓶颈</div><div class="d">先扩哪里 · 怎么定位瓶颈</div></div><div class="arrow">›</div></a>
+
+  <div class="group">评测</div>
+  <a class="card" href="eval-attribution.html"><div class="num" style="background:var(--g5)">31</div><div class="txt"><div class="t">评测与失败归因</div><div class="d">指标口径 · 失败定位方法</div></div><div class="arrow">›</div></a>
+  <a class="card" href="eval-set.html"><div class="num" style="background:var(--g5)">32</div><div class="txt"><div class="t">评测集怎么构建</div><div class="d">样本覆盖 · 难度分层 · 稳定性</div></div><div class="arrow">›</div></a>
+  <a class="card" href="multi-cloud-eval.html"><div class="num" style="background:var(--g5)">33</div><div class="txt"><div class="t">多云评测</div><div class="d">跨模型对比 · 口径一致性</div></div><div class="arrow">›</div></a>
 
   <div class="group">模型</div>
-  <a class="card" href="finetune.html">
-    <div class="num n-v">08</div>
-    <div class="txt"><div class="t">微调背记卡</div><div class="d">LoRA、QLoRA、数据构造与评测对比</div></div>
-    <div class="arrow">›</div>
-  </a>
+  <a class="card" href="finetune.html"><div class="num" style="background:var(--g6)">34</div><div class="txt"><div class="t">微调背记卡</div><div class="d">LoRA · QLoRA · 数据构造 · 对比评测</div></div><div class="arrow">›</div></a>
 
+  <div class="empty" id="empty">没有匹配的卡片</div>
   <footer>个人学习资料</footer>
 </div>
+<script>
+(function(){
+  var q = document.getElementById('q');
+  var cards = [].slice.call(document.querySelectorAll('a.card'));
+  var groups = [].slice.call(document.querySelectorAll('.group'));
+  q.addEventListener('input', function(){
+    var k = this.value.trim().toLowerCase();
+    var hit = 0;
+    cards.forEach(function(c){
+      var ok = !k || c.textContent.toLowerCase().indexOf(k) > -1;
+      c.style.display = ok ? '' : 'none';
+      if(ok) hit++;
+    });
+    groups.forEach(function(g){
+      var n = g.nextElementSibling, any = false;
+      while(n && n.classList.contains('card')){
+        if(n.style.display !== 'none'){ any = true; break; }
+        n = n.nextElementSibling;
+      }
+      g.style.display = any ? '' : 'none';
+    });
+    document.getElementById('empty').style.display = hit ? 'none' : 'block';
+  });
+})();
+</script>
 </body>
 </html>
