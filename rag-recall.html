@@ -156,6 +156,22 @@
       <section class="grp first">
         <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
         <div class="anchorbox"><span class="atag">一句话</span><p>RAG 是先查再答；<mark>数据定天花板，排序定胜负</mark></p></div>
+        <div class="plans">
+          <div class="prow phead"><span>步骤</span><span>通用做法</span><span>我的项目</span></div>
+          <div class="prow"><span class="pc">① 提问</span><span>原话进来</span><span>原话加最近几轮历史</span></div>
+          <div class="prow"><span class="pc">② 改写</span><span>补指代、扩同义、抽关键词</span><span>跨语言改写，保留错误码和编号，否定条件不丢</span></div>
+          <div class="prow"><span class="pc">③ 检索</span><span>两路召回再融合</span><span>向量管语义，关键词管精确，按名次融合</span></div>
+          <div class="prow"><span class="pc">④ 组装</span><span>按预算拼上下文</span><span>命中后回原文扩窗，证据有上限</span></div>
+          <div class="prow"><span class="pc">⑤ 生成</span><span>只依据证据作答</span><span>结构化答案，字段固定</span></div>
+          <div class="prow"><span class="pc">⑥ 引用</span><span>回填并校验</span><span>程序回原文取句，校验版本和位置</span></div>
+        </div>
+        <div class="plans">
+          <div class="prow phead"><span>层</span><span>通用做法</span><span>我的项目</span></div>
+          <div class="prow"><span class="pc">数据</span><span>切片保完整，元数据打标</span><span>按标题层级切，1200 字再切留 200 重叠，向量 1024 维</span></div>
+          <div class="prow"><span class="pc">查询</span><span>改写口语和指代</span><span>跨语言改写加守卫；指代消解没做</span></div>
+          <div class="prow"><span class="pc">检索</span><span>稠密加稀疏</span><span>两路召回，按名次融合</span></div>
+          <div class="prow"><span class="pc">排序</span><span>精排后取 Top N</span><span>候选 10 条进重排，最后取 3 条，低分直接过滤</span></div>
+        </div>
         <div class="note">
           <div class="notetitle">补充</div>
           <p>场景题：A 山茶花保湿精华主打补水，B 富勒烯抗衰乳液主打紧致淡纹，用户问“抗老紧致的山茶花乳液”。重点是抗老紧致，山茶花是记错的品类词，该命中 B。</p>
