@@ -155,18 +155,17 @@
       <header class="chead"><span class="num">1</span><h2 class="q">RAG 变动数据怎么处理</h2></header>
       <section class="grp first">
         <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
-        <div class="anchorbox"><span class="atag">一句话</span><p>语义进索引，变动走事实源；<mark>metadata 里的业务主键是关键</mark></p></div>
+        <div class="anchorbox"><span class="atag">一句话</span><p>正文按版本不可变，生效状态单独存；<mark>命中的切片要回库验一次版本</mark></p></div>
         <div class="plans">
-          <div class="prow phead"><span>阶段</span><span>什么时候</span><span>做什么</span></div>
-          <div class="prow"><span class="pc">① 确认对象</span><span>意图识别拿到商品 ID</span><span>避免盲目检索</span></div>
-          <div class="prow"><span class="pc">② 取语义</span><span>向量库拿商品描述</span><span>稳定知识</span></div>
-          <div class="prow"><span class="pc">③ 取实时</span><span>用商品 ID 查 Redis 或库</span><span>价格库存会变</span></div>
-          <div class="prow"><span class="pc">④ 组装</span><span>拼成上下文</span><span>模型拿到完整信息</span></div>
+          <div class="prow phead"><span>层</span><span>通用做法</span><span>我的项目</span></div>
+          <div class="prow"><span class="pc">数据类型</span><span>通用做法：静态进索引，变动走事实源</span><span>我的项目</span></div>
+          <div class="prow"><span class="pc">静态</span><span>正文、描述这类不常变的内容</span><span>document_versions：原文、哈希、块数、索引集合，写完不改</span></div>
+          <div class="prow"><span class="pc">变动</span><span>价格库存、生效状态这类常变的值</span><span>documents.active_version 和 status；知识库挂哪些数据集的关系</span></div>
+          <div class="prow"><span class="pc">主键</span><span>元数据里必须带业务主键</span><span>document_id 加 version，命中后能回查也能过滤</span></div>
         </div>
         <div class="note">
           <div class="notetitle">补充</div>
-          <p>向量库一般存四样：切片 ID、向量、原文、metadata。metadata 里必须有业务主键，比如商品 ID，否则查不到实时字段。</p>
-          <p>静态信息进索引，变动字段不进索引。</p>
+          <p>向量库一般存四样：切片 ID、向量、原文、元数据。变动字段不进索引，因为改一次就要重切、重嵌入、重建索引，旧引用还会失效。</p>
         </div>
         <div class="lanes">
         </div>
@@ -174,27 +173,22 @@
       <section class="grp">
         <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>电商商品问答里，商品描述基本不变，价格和库存天天变。如果都塞进向量库，每次调价都要重切、重嵌入、重建索引，旧引用还会失效。</p>
-          <p>做法是冷热分离。向量库只存稳定的语义内容，metadata 带上商品 ID；价格库存走 Redis 或数据库，用商品 ID 直接查。</p>
-          <p>流程四步：先确认用户问的是哪个商品，靠意图识别，也可以靠当前页面停留；再检索商品描述；然后用商品 ID 查价格和库存；最后组装成上下文交给模型。</p>
-          <p>为什么用 Redis：电商高并发，价格库存是热数据，提前预热到缓存，读延迟低。没有 Redis 直接查库也能做，只是并发上来扛不住。</p>
-          <p>我项目里没有价格库存，但结构一样：向量库只是可重建的索引，事实在 PostgreSQL；文档按版本存，原文不变。</p>
-          <p>**样例**</p>
-          <p>```text</p>
-          <p>向量库：chunk_id / vector / text / metadata{productId, documentId, version}</p>
-          <p>实时库：productId -> price, stock</p>
-          <p>```</p>
+          <p>这题按数据分两类。一类是不常变的：正文内容，写完就是一版，旧版不动。一类是常变的：当前哪个版本生效、这份文档解析成没成功、这个知识库挂了哪些数据集。</p>
+          <p>我的做法是正文按版本存，每个版本一行，原文、哈希、块数都记下来，写完不改。变动的那部分单独放文档表：一个 active_version 指针，一个状态字段。更新文档不是覆盖，是插一个新版本，再把指针指过去。</p>
+          <p>检索流程五步。第一，确认这次问的是哪个知识库。第二，混合检索拿候选切片。第三，拿切片里的 document_id 和 version 回库查：指针还是这个版本吗，状态还是就绪吗。第四，把有效片段按版本和位置拼成证据窗口。第五，生成回答，引用带版本号。</p>
+          <p>这样做的好处是切换版本不用重建索引。索引是按版本存的，切版本只是改一个指针，旧版本的切片还在，历史问答的引用也还能解析到旧版本，不会串。代价是每次检索多一次回库校验，但这是一次主键查询，很便宜。</p>
+          <p>如果被问高并发，我会说：现在是直接查库，没有缓存层。版本切换不是高频写，先加缓存也行，但优先级低于把索引和事实源分开这件事。</p>
         </div>
       </section>
       <section class="grp">
         <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
         <ul class="ask ans">
-            <li>价格能写进 chunk 吗？→ 不能。调价要重切重嵌入，旧引用还会失效。</li>
-            <li>metadata 里必须有什么？→ 业务主键，比如 productId、documentId、version，用来回查和过滤。</li>
-            <li>没有 Redis 怎么办？→ 直接查 PG，加一层缓存也行；关键是别把变动字段写进索引。</li>
-            <li>怎么知道用户问的是哪个商品？→ 意图识别，或者当前页面上下文。</li>
+            <li>文档更新了，旧引用怎么办？→ 不覆盖，插新版本；引用带版本号，旧问答仍指向旧版本。</li>
+            <li>切换版本要重建索引吗？→ 不用。索引按版本存，切换只是改指针。</li>
+            <li>元数据里必须有什么？→ document_id、version、位置，少一个都没法回查。</li>
+            <li>为什么不做覆盖更新？→ 覆盖会让旧引用失效，也没法回滚。</li>
         </ul>
-        <div class="gapline ans"><span class="gtag">缺口</span><p>项目里没有价格库存这类实时字段，也没有接 Redis。</p></div>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没有缓存层；每次检索都回库校验一次版本。</p></div>
       </section>
     </article>
   </div>
