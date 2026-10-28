@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>微调背记卡 · Edge2Me / PEFT</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --green:#1c6b44; --green-bg:#edf7f1; --green-bar:#2f9e63;
+    --blue:#1f5a86; --blue-bg:#eef4fb; --blue-bar:#3b82b8;
+    --amber:#89530f; --amber-bg:#fdf4e6; --amber-bar:#d08a2a;
+    --violet:#423a75; --violet-bg:#f3f1fa; --violet-bar:#6b5fb0;
+    --code-bg:#f5f4ef;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:820px;margin:0 auto;padding:22px 16px 80px}
+
+  .top{position:sticky;top:0;z-index:9;background:var(--bg);padding:10px 0 8px;
+    border-bottom:1px solid var(--line);margin-bottom:16px}
+  .toprow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+  .bar{display:flex;align-items:center;gap:10px}
+  button{font:inherit;font-size:12.5px;font-weight:600;padding:7px 15px;border-radius:999px;
+    cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+  button.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .hint{font-size:11.5px;color:var(--muted)}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:8px}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:1px}
+  .lg-g{background:var(--green-bar)} .lg-v{background:var(--violet-bar)}
+  .lg-b{background:var(--blue-bar)} .lg-a{background:var(--amber-bar)}
+
+  .toc{display:flex;gap:7px;overflow-x:auto;padding:9px 0 2px;scrollbar-width:none}
+  .toc::-webkit-scrollbar{display:none}
+  .toc a{flex:none;font-size:12px;color:var(--ink);text-decoration:none;background:var(--card);
+    border:1px solid var(--line);border-radius:999px;padding:5px 10px;white-space:nowrap}
+  .toc a:hover{border-color:var(--green-bar);color:var(--green)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:20px 20px 18px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.035);
+    scroll-margin-top:132px}
+  .test .card{cursor:pointer}
+
+  .chead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .num{flex:none;font-size:12px;font-weight:700;color:#fff;background:var(--green);
+    border-radius:8px;padding:4px 9px;letter-spacing:.5px}
+  .q{font-size:17.5px;font-weight:700;line-height:1.4;margin:0}
+
+  .grp{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+  .grp.first{border-top:none;padding-top:0;margin-top:0}
+  .gh{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .gnum{flex:none;width:19px;height:19px;border-radius:50%;background:var(--violet-bg);
+    color:var(--violet);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .gname{font-size:12.5px;font-weight:700;letter-spacing:1px;color:var(--ink)}
+  .gsub{font-size:11px;color:var(--muted)}
+
+  .anchorbox{background:var(--green-bg);border-left:4px solid var(--green-bar);
+    border-radius:12px;padding:13px 15px}
+  .atag{display:block;font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--green);margin-bottom:5px}
+  .anchorbox p{margin:0;font-size:17px;font-weight:700;color:var(--green);line-height:1.65}
+
+  .lanes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
+  .lane{background:var(--violet-bg);border-left:4px solid var(--violet-bar);
+    border-radius:12px;padding:12px 12px 13px}
+  .lanehead{font-size:10.5px;font-weight:700;color:var(--violet);letter-spacing:1.2px;margin-bottom:8px}
+  .node{background:#fff;border:1px solid #ded9f0;border-radius:9px;padding:8px 10px;
+    font-size:13px;line-height:1.55;color:var(--violet)}
+  .node.hot{border-color:var(--violet-bar);font-weight:600;box-shadow:0 0 0 2px rgba(107,95,176,.12)}
+  .dash{text-align:center;color:var(--violet-bar);font-size:12px;line-height:1.4;opacity:.65}
+
+  .chain{margin-top:11px;background:#faf9f5;border:1px dashed var(--line);
+    border-radius:12px;padding:11px 12px}
+  .chaintitle{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:1.2px;margin-bottom:8px}
+  .chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;
+    padding:4px 10px;font-size:12.5px;line-height:1.5;color:#3b3b35}
+  .ar{color:var(--muted);font-size:11px}
+
+  .say p{margin:0 0 12px;font-size:15.5px;line-height:1.9}
+  .say p:last-child{margin-bottom:0}
+
+  .sample{margin-bottom:10px}
+  .samptext{font-size:13px;color:#3b3b35;margin:10px 0 6px;line-height:1.7}
+  pre{margin:0 0 10px;background:var(--code-bg);border:1px solid var(--line);
+    border-radius:10px;padding:11px 13px;overflow-x:auto}
+  code{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    font-size:11.8px;line-height:1.65;color:#3b3b35;white-space:pre}
+
+  .tablewrap{overflow-x:auto;margin-top:11px}
+  .tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+  .tbl.wide{min-width:620px}
+  .tbl th,.tbl td{border-top:1px dashed var(--line);padding:7px 6px;text-align:left;vertical-align:top}
+  .tbl th{font-size:10.5px;color:var(--muted);letter-spacing:1px;background:#faf9f5;font-weight:700}
+  .tbl tr:first-child th{border-top:none}
+  .tbl td:first-child{font-weight:600;color:#3b3b35}
+  .tbl td.n,.tbl th.n{text-align:right;font-variant-numeric:tabular-nums}
+  .tbl .hl{color:var(--green);font-weight:700}
+  .tbl .warn{color:var(--amber);font-weight:700}
+
+  .projline{display:flex;gap:10px;align-items:flex-start;background:var(--blue-bg);
+    border-left:4px solid var(--blue-bar);border-radius:12px;padding:12px 14px}
+  .ptag{flex:none;font-size:10.5px;font-weight:700;letter-spacing:1.2px;color:var(--blue);padding-top:3px}
+  .projline p{margin:0 0 8px;font-size:14px;line-height:1.8;color:var(--blue)}
+  .projline p:last-child{margin-bottom:0}
+
+  .ask{margin:0 0 10px;padding:0 0 0 20px}
+  .ask li{font-size:14px;line-height:1.8;margin-bottom:8px;color:#3b3b35}
+  .ask li:last-child{margin-bottom:0}
+
+  .gapline{display:flex;gap:10px;align-items:flex-start;background:var(--amber-bg);
+    border-left:4px solid var(--amber-bar);border-radius:12px;padding:12px 14px}
+  .gtag{flex:none;font-size:10.5px;font-weight:700;letter-spacing:1.2px;color:var(--amber);padding-top:2px}
+  .gapline p{margin:0;font-size:13.5px;line-height:1.75;color:var(--amber)}
+
+  .map{margin-top:11px;background:#fbfaf5;border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .maptitle{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:1.2px;margin-bottom:7px}
+  .mrow{display:flex;gap:10px;padding:3px 0;font-size:13px;line-height:1.7}
+  .mk{flex:none;width:112px;color:var(--violet);font-weight:700}
+  .mv{color:#3b3b35}
+
+  mark{background:linear-gradient(transparent 58%, #ffe8a3 58%);
+    padding:0 2px;border-radius:2px;color:inherit;font-weight:600}
+
+  .ans{transition:filter .18s ease}
+  .test .say p, .test .projline, .test .ask li, .test .gapline,
+  .test .samptext, .test .sample pre, .test .tbl{filter:blur(5px)}
+  .test .tbl.ref{filter:none}
+  .test .card.shown .say p, .test .card.shown .projline, .test .card.shown .ask li,
+  .test .card.shown .gapline, .test .card.shown .samptext,
+  .test .card.shown .sample pre, .test .card.shown .tbl{filter:none}
+
+  @media (max-width:640px){ .lanes{grid-template-columns:1fr} }
+  @media (max-width:520px){
+    .wrap{padding:14px 12px 70px}
+    .card{padding:16px 15px 14px;border-radius:16px;scroll-margin-top:150px}
+    .q{font-size:16px} .anchorbox p{font-size:16px}
+    .say p{font-size:15px} .node{font-size:12.5px}
+    code{font-size:11px}
+    .top{padding:8px 0 6px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="top">
+    <div class="toprow">
+      <h1>微调背记卡 · Edge2Me / PEFT</h1>
+      <div class="bar">
+        <button id="mode" class="on">自测模式</button>
+        <span class="hint" id="hint">点卡片显形</span>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="lg-v"></i>框架</span>
+      <span><i class="lg-g"></i>锚</span>
+      <span><i class="lg-b"></i>项目数字</span>
+      <span><i class="lg-a"></i>缺口</span>
+    </div>
+    <nav class="toc">
+      <a href="#c00">00 数字总表</a>
+      <a href="#c01">01 微调故事</a>
+      <a href="#c02">02 参数账本</a>
+      <a href="#c03">03 冻结策略</a>
+      <a href="#c04">04 Adapter 结构</a>
+      <a href="#c05">05 训练配方</a>
+      <a href="#c06">06 数据标注</a>
+      <a href="#c07">07 划分 OOF</a>
+      <a href="#c08">08 指标消融</a>
+      <a href="#c09">09 PEFT 选型</a>
+      <a href="#c10">10 LoRA</a>
+      <a href="#c11">11 QLoRA</a>
+      <a href="#c12">12 遗忘小样本</a>
+      <a href="#c13">13 微调 RAG Prompt</a>
+      <a href="#c14">14 时空智子遥感</a>
+    </nav>
+  </div>
+
+  <div id="list">
+    <article class="card" id="c00">
+      <header class="chead">
+        <span class="num">00</span>
+        <h2 class="q">先背这 6 个数字</h2>
+      </header>
+      <section class="grp first">
+        <div class="tablewrap">
+          <table class="tbl ref">
+            <thead><tr><th>数字</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td>1.404M / 40.031M = 3.51%</td><td>可训练参数 / 总参数</td></tr>
+              <tr><td>16,476</td><td>Adapter 总参数，只占可训练参数的 1.17%</td></tr>
+              <tr><td>0.607 → 0.957</td><td>source NBED → Edge2Me 的 ODS（固定 split）</td></tr>
+              <tr><td>0.925 / 0.910 / 0.920</td><td>五折 parent-exclusive OOF 的 ODS/OIS/AP</td></tr>
+              <tr><td>435 / 100；384；77/77/77/77/76</td><td>训练/验证；原始 parent；五折折数</td></tr>
+              <tr><td>0.951 / 0.960 / 0.933</td><td>A00 只调 decoder/head；B01 全参；LoRA baseline 的 ODS</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </article>
+
+    <article class="card" id="c01">
+      <header class="chead">
+        <span class="num">01</span>
+        <h2 class="q">60 秒讲清我的微调</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>我不是“只会 Adapter”，我做的是<mark>冻结 encoder + 微调 decoder/head + 插 11 个 1×1 瓶颈 Adapter</mark> 的参数高效域适配；1.404M/40.031M=3.51%，ODS 0.607→0.957。</p></div>
+        <div class="chain">
+          <div class="chaintitle">一句话流程</div>
+          <div class="chips"><span class="chip">问题：跨成像域 · 边界断裂</span><span class="ar">→</span><span class="chip">冻结 encoder</span><span class="ar">→</span><span class="chip">微调 decoder/head + Adapter</span><span class="ar">→</span><span class="chip">0.957</span><span class="ar">→</span><span class="chip">几何测量</span></div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>我的微调不是从零训一个大模型。我的任务是光纤端面边界检测，预训练的 NBED 在自然图像上边界很强，但换到侧向照明和同轴反射两种工业成像域，会出现边界断裂、伪响应，直接拿去做几何拟合会抖。</p>
+          <p>我的做法是冻结 encoder，只动 decoder 和 head，再在 10 个 decoder 节点和 head 后面插 1×1 瓶颈 Adapter，一共更新 1.404M 参数，占总参数 3.51%。</p>
+          <p>结果固定验证集 ODS/OIS/AP 从 0.607/0.680/0.478 提到 <mark>0.957/0.959/0.956</mark>，五折 parent-exclusive OOF 是 0.925/0.910/0.920。</p>
+          <p>这个经历的核心不是 Adapter 本身，而是<mark>域差距在哪、该冻谁、该改谁、怎么证明没泄漏</mark>。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">项目数字</span></div>
+        <div class="projline ans"><span class="ptag">数字</span><div>
+          <p>可训练 1,403,773；总参数 40,031,101；固定 split 0.957/0.959/0.956；OOF 0.925/0.910/0.920。</p>
+          <p>训练 435 / 验证 100；五折 OOF 覆盖 384 个原始 parent。</p>
+        </div></div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">4</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>Adapter 占多少？→ 16,476，占可训练参数 1.17%、总参数 0.041%；大头是 decoder。</li>
+          <li>为什么不做全参？→ 全参 B01 0.960，只高 0.003，但参数 40.015M，是 28.5 倍。</li>
+          <li>为什么不做 LoRA？→ 做了 LoRA baseline 0.933，但它只训 160.9K，原 decoder/head 全冻，参数预算只有我的 1/8.7，不是同一预算。</li>
+          <li>你的创新点是什么？→ 数据集 + 测量一致标注 + 域适配策略 + 统一边界到几何评估；不是单独一个 Adapter。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>我的微调经验集中在 CV 的 PEFT，没有 LLM SFT 的生产经验；但数据、冻结策略、参数账、评估、防泄漏这套流程是通的。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c02">
+      <header class="chead">
+        <span class="num">02</span>
+        <h2 class="q">参数账本：1.404M 到底是什么</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>1.404M ≠ Adapter；<mark>Adapter 只有 16,476</mark>，decoder 本身 1,387,008，head 293。</p></div>
+        <div class="tablewrap">
+          <table class="tbl">
+            <thead><tr><th>部分</th><th class="n">参数量</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>Encoder（CAFormer-M36）</td><td class="n">38,627,328</td><td>冻结</td></tr>
+              <tr><td>Decoder（UNet++）</td><td class="n">1,387,008</td><td>可训练</td></tr>
+              <tr><td>Decoder Adapter ×10</td><td class="n">16,472</td><td>可训练</td></tr>
+              <tr><td>Head 卷积</td><td class="n">289</td><td>可训练</td></tr>
+              <tr><td>Head Adapter ×1</td><td class="n">4</td><td>可训练</td></tr>
+              <tr><td><span class="hl">合计可训练</span></td><td class="n"><span class="hl">1,403,773</span></td><td><span class="hl">3.51%</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>面试官如果问“你这 1.404M 是不是都是 Adapter”，要马上纠正：不是。</p>
+          <p>1.404M 里 decoder 本身 1,387,008，head 293，Adapter 只有 16,476，占可训练参数 1.17%、总参数 0.041%。</p>
+          <p>所以准确说是<mark>“冻结 encoder，微调 decoder/head，再加 Adapter”</mark>，不是“只训 Adapter”。Adapter 的作用是结构上的局部校准，不是参数量的主体。</p>
+          <p>这个账要能当场拆开算：每个 1×1 卷积 C→C/4→C，C 是 32/64/128，10 个 decoder 节点加 1 个 head，head 只有 4 个参数。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">项目数字</span></div>
+        <div class="projline ans"><span class="ptag">数字</span><div>
+          <p>Encoder 冻结 38.63M，占 96.5%；Decoder + head 非 Adapter 1,387,297；Adapter 16,476（decoder 16,472 + head 4）。</p>
+        </div></div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">4</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>Adapter 怎么算出来？→ 1×1 C→C/4 和 C/4→C，各带 bias；C=32 的 7 个节点、C=64 的 2 个、C=128 的 1 个，加 head 4 个。</li>
+          <li>为什么 head Adapter 只有 4 个参数？→ 1×1 1→1 带 bias 两次，正好 4 个。</li>
+          <li>那你的创新点是不是很水？→ 创新点不是 Adapter 参数量，而是数据构建、标注一致性、域适配策略和统一评估；Adapter 是轻量结构，不是主贡献。</li>
+          <li>你为什么把 decoder 全训了还叫 PEFT？→ PEFT 的定义是冻结大部分 backbone、只更新一小部分；我冻了 96.5% 的 encoder，可训练只有 3.51%，这是 partial fine-tuning + Adapter，不是纯 Adapter tuning。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>不要把 1.404M 说成 Adapter 参数；也不要说“只训 1.4M 就媲美全参”而不提 B01 0.960。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c03">
+      <header class="chead">
+        <span class="num">03</span>
+        <h2 class="q">为什么冻结 encoder、只调 decoder/head</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>域差距主要在<mark>“边界响应怎么组织”</mark>，不在低层特征；encoder 的低层/中层特征可迁移，decoder 才是把多尺度特征拼成边界的地方。</p></div>
+        <div class="lanes">
+          <div class="lane">
+            <div class="lanehead">Encoder 侧</div>
+            <div class="node">通用边缘 / 纹理 / 对比度</div>
+            <div class="dash">↓</div>
+            <div class="node hot">冻结 38.63M，保留预训练特征</div>
+          </div>
+          <div class="lane">
+            <div class="lanehead">Decoder / Head 侧</div>
+            <div class="node">多尺度特征 → 边界响应</div>
+            <div class="dash">↓</div>
+            <div class="node hot">微调 1.387M + Adapter 16.5K</div>
+          </div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>我不是为了省参数才冻结 encoder，是因为这个任务的域差距不在底层视觉特征。</p>
+          <p>自然图像和光纤端面都需要边缘、纹理、对比度这些低层特征，encoder 已经够通用；真正变的是<mark>“哪些响应该保留、哪些是伪边界、边界怎么连起来”</mark>，这在 decoder 和 head 里。</p>
+          <p>再加上训练集只有 435 张，全参 40M 很容易过拟合，或者把预训练特征冲掉。所以我冻结 encoder，只调解码器和输出侧。</p>
+          <p>论文里全参微调 B01 能到 0.960，比我的 0.957 高一点点，但参数是 28.5 倍；我这个方案是性价比和稳定性优先。如果换到跨传感器、跨模态差距更大的场景，我会考虑解冻高层 block，或者在 encoder 里加 LoRA。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">项目数字</span></div>
+        <div class="projline ans"><span class="ptag">数字</span><div>
+          <p>Encoder 38.63M 冻结；可训练 1.404M；全参 B01 0.960 但 40.015M 可训练，28.5 倍。</p>
+          <p>source 0.607 → 补跑 A00（只调 decoder/head）0.951 → Edge2Me 0.957。</p>
+        </div></div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">4</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>怎么证明冻结是对的？→ A00 只调 decoder/head 已经 0.951；全参只高 0.003 但贵 28.5 倍；小样本下冻结更稳。严格因果还要四格重跑。</li>
+          <li>为什么不只冻前几层？→ 可以；当前任务低层特征可迁移。如果域差距更大，可以解冻高层 block 或用 LoRA。</li>
+          <li>灾难性遗忘怎么测？→ 看源域/通用边界集是否下降；我目前主要看目标域和 OOF，源域回归做得不够。</li>
+          <li>为什么 decoder 全训而不是只训 Adapter？→ decoder 是任务头的关键路径，容量太小会欠拟合；Adapter 只加 16.5K，负责局部校准；两者分工不同。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没做逐层解冻实验；没系统测源域遗忘；单 seed。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c04">
+      <header class="chead">
+        <span class="num">04</span>
+        <h2 class="q">FRB/BRM：Adapter 的结构</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p><mark>1×1 瓶颈 + ReLU + 末层零初始化 + 残差</mark>；10 个 decoder 节点 + 1 个 head，共 11 个；实际 reduction=4。</p></div>
+        <div class="chain">
+          <div class="chaintitle">前向</div>
+          <div class="chips"><span class="chip">F（C×H×W）</span><span class="ar">→</span><span class="chip">1×1 C→C/4</span><span class="ar">→</span><span class="chip">ReLU</span><span class="ar">→</span><span class="chip">1×1 C/4→C（零初始化）</span><span class="ar">→</span><span class="chip">F + A(F)</span></div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">代码长这样</span></div>
+        <div class="sample ans">
+          <pre><code>import torch.nn as nn
+
+class ConvAdapter(nn.Module):
+    def __init__(self, c, r=4):
+        super().__init__()
+        mid = max(1, c // r)
+        self.body = nn.Sequential(
+            nn.Conv2d(c, mid, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(mid, c, 1),
+        )
+        nn.init.zeros_(self.body[-1].weight)
+        nn.init.zeros_(self.body[-1].bias)
+
+    def forward(self, x):
+        return x + self.body(x)</code></pre>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>FRB 和 BRM 在论文里是两个名字，代码里是同一个 ConvAdapter。</p>
+          <p>它不改变原卷积，只在输出上加一个旁路：先 1×1 把通道压到四分之一，ReLU，再 1×1 升回原通道，最后残差加回去。</p>
+          <p>最后一层零初始化，所以刚插进去时输出和原模型完全一样，训练从恒等映射开始，不会一上来就把预训练特征打乱。</p>
+          <p>decoder 的 10 个 UNet++ 节点各插一个，head 后面再插一个，共 11 个。它像<mark>给原卷积加了一个小的微调旋钮，不是换发动机</mark>。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">4</span><span class="gname">项目数字 + 追问</span></div>
+        <div class="projline ans"><span class="ptag">数字</span><div>
+          <p>11 个节点：10 个 decoder + 1 个 head；reduction=4（代码默认 8，实际命令用 4）；Adapter 合计 16,476；head Adapter 4 个。</p>
+        </div></div>
+        <ul class="ask ans">
+          <li>为什么用 1×1 而不是 3×3？→ 1×1 最省参数，只做通道校准；空间上下文由原卷积和 decoder 负责。</li>
+          <li>为什么 reduction=4？→ 参数/容量折中；代码默认 8，实际命令用 4；我没做 r 的完整消融，这是缺口。</li>
+          <li>零初始化有什么用？→ 初始等价于原模型，训练稳定；和 LoRA 的 B=0 是一个道理。</li>
+          <li>Adapter 和 LoRA 区别？→ Adapter 有非线性、串在层后、不能严格合并；LoRA 是纯线性低秩旁路，可合并。</li>
+          <li>BRM 为什么只有 4 个参数？→ head 是 1 通道，1×1 1→1 两次就是 4 个；它更像一个可学习的残差校准，不要吹成大模块。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没做 reduction ratio 消融；BRM 只有 4 个参数，别把它说成核心贡献。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c05">
+      <header class="chead">
+        <span class="num">05</span>
+        <h2 class="q">训练配方：每个参数为什么</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>小样本 + 单卡 24G：<mark>batch 1×accum 8、bf16、梯度检查点、cosine + warmup、clip 1.0</mark>；loss 用加权 BCE，pos_weight 上限 10，dice 0。</p></div>
+        <div class="tablewrap">
+          <table class="tbl">
+            <thead><tr><th>项目</th><th>设置</th><th>为什么</th></tr></thead>
+            <tbody>
+              <tr><td>优化器</td><td>AdamW，wd 1e-4</td><td>解耦权重衰减，fine-tune 常用</td></tr>
+              <tr><td>学习率</td><td>论文写 2e-4；实际分组约 decoder 1e-4、head 3e-4</td><td>head 任务更专，lr 可以大一点</td></tr>
+              <tr><td>batch</td><td>1，accum 8</td><td>24G 显存；有效 batch 8</td></tr>
+              <tr><td>调度</td><td>cosine，3 warmup，min 3e-6</td><td>小样本稳定收敛</td></tr>
+              <tr><td>精度</td><td>bf16，channels_last</td><td>省显存，不用 loss scaling</td></tr>
+              <tr><td>显存</td><td>decoder/head 梯度检查点</td><td>用算力换显存</td></tr>
+              <tr><td>裁剪</td><td>grad clip 1.0</td><td>防尖峰</td></tr>
+              <tr><td>损失</td><td>加权 BCE，pos_weight cap 10，dice 0</td><td>边界细，防“涂宽”</td></tr>
+              <tr><td>训练</td><td>max 1400，best 71，日志到 78</td><td>按验证 loss 选最优</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>训练上是单卡 4090D 24G，所以 batch 只能 1，用 8 步梯度累积凑成有效 batch 8；decoder 用 InstanceNorm，batch 1 也能稳。</p>
+          <p>混合精度用 bf16，不用 fp16，省掉 loss scaling；decoder/head 开了梯度检查点，用算力换显存。</p>
+          <p>优化器 AdamW，学习率实际是分组的，decoder 约 1e-4、head 约 3e-4，论文里简写成 2e-4；cosine 衰减，3 个 epoch warmup，最低 3e-6，梯度裁剪 1.0。</p>
+          <p>损失是加权 BCE，正样本权重按比例估，但上限卡在 10，因为边界太细，权重太大会把边界涂宽；dice 权重设 0，因为我试下来 BCE 够了。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">项目数字 + 追问</span></div>
+        <div class="projline ans"><span class="ptag">数字</span><div>
+          <p>best val loss 0.022425 @ epoch 71；日志到 78；训练 435 张；内部监控 35 张（不是 100 张 benchmark）；单 epoch 约 358 秒。</p>
+        </div></div>
+        <ul class="ask ans">
+          <li>为什么 batch 1 还能稳？→ InstanceNorm + 梯度累积 + warmup + clip；不是 BatchNorm。</li>
+          <li>pos_weight 为什么上限 10？→ 防止极细正类导致边界变粗；论文里有 α clip 公式。</li>
+          <li>为什么 dice=0？→ 细线边界上 Dice 容易和 BCE 冲突/主导；当前 BCE + pos_weight 够，可以再试。</li>
+          <li>为什么 best 71 却训到 78？→ 按验证 loss 选 best，日志到 78 就停了，没有跑满 1400；不是严格 patience 15。</li>
+          <li>论文写 2e-4，日志怎么是 1e-4/3e-4？→ 实际是分组学习率，head wd=0；论文是简写。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没做 lr/pos_weight/dice 的完整 sweep；只有单 seed 主实验 + 五折 OOF；内部监控 35 张和 100 张 benchmark 不能混。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c06">
+      <header class="chead">
+        <span class="num">06</span>
+        <h2 class="q">数据与标注：FEB-Bench 怎么来的</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>FEB-Bench = <mark>384 原始 + 151 增强 = 535</mark>；两类成像域、三类端面；标注不是人工描边，是 <mark>MPF 融合 + 最少人工清理 + SGR 单像素细化</mark>。</p></div>
+        <div class="chain">
+          <div class="chaintitle">标注链路</div>
+          <div class="chips"><span class="chip">采集</span><span class="ar">→</span><span class="chip">5 模型 MPF</span><span class="ar">→</span><span class="chip">最少人工清理</span><span class="ar">→</span><span class="chip">SGR 亚像素</span><span class="ar">→</span><span class="chip">闭合单像素</span></div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>FEB-Bench 不是我随便标出来的。原始 384 张，增强 151 张，一共 535；两类成像条件、三类端面。</p>
+          <p>标注先用五个预训练边缘模型做多尺度推理，在 logit 空间加权融合，得到一个比较稳的伪边界；再做最少的人工清理，主要去掉同轴反射里的内圈重复边和非目标响应。</p>
+          <p>最后用 SGR 把粗边界细化成闭合单像素：每个角度先从融合图取径向先验，再在原图上找梯度峰值，加高斯距离约束，最后抛物线插值做亚像素。</p>
+          <p>这样标出来的边界和下游椭圆/几何拟合用的是同一个定义，<mark>不会出现“标得准但测不准”</mark>。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">项目数字 + 追问</span></div>
+        <div class="projline ans"><span class="ptag">数字</span><div>
+          <p>535 = 384 原始 + 151 增强；435 训练 / 100 验证；100 验证 = 35 原始 + 65 增强；35 原始用于选 checkpoint。</p>
+          <p>三种端面：single-mode、octagon、four-core；两种域：side-illumination、coaxial-reflection。</p>
+        </div></div>
+        <ul class="ask ans">
+          <li>为什么不用 SAM/分割大模型？→ SAM 给的是 mask，边界粗；我们要单像素、测量一致的边界，传统边缘模型 + 几何细化更合适。</li>
+          <li>151 张增强怎么做的？→ 只在 split 后做光度增强：亮度/对比度、gamma、噪声、模糊、暗角；不做旋转翻转，因为四芯有定位孔索引，几何变换会破坏 Core 1-4 对应。</li>
+          <li>人工清理了多少？→ 最少清理，主要去内圈重复边；具体比例没统计，这是缺口。</li>
+          <li>标注质量怎么保证？→ 单像素闭合、下游几何一致性、535 张全量检查；但没有双人标注一致性指标。</li>
+          <li>为什么用五个模型融合？→ 单个模型有偏；logit 空间加权平均能压掉部分伪响应，减少后面人工清理量。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>MPF+SGR 没有一键流水线；人工清理比例没量化；没有标注者间一致性。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c07">
+      <header class="chead">
+        <span class="num">07</span>
+        <h2 class="q">划分与 OOF：怎么证明没泄漏</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p><mark>先划分再增强</mark>；435/100；100 张验证里 35 原始选 checkpoint；五折 OOF 按 parent 分组，增强样本不跨折。</p></div>
+        <div class="lanes">
+          <div class="lane">
+            <div class="lanehead">固定 split</div>
+            <div class="node">384 parents → 435 训练 + 100 验证</div>
+            <div class="dash">↓</div>
+            <div class="node hot">100 = 35 原始 + 65 增强；选点只用 35 原始</div>
+          </div>
+          <div class="lane">
+            <div class="lanehead">五折 OOF</div>
+            <div class="node">384 parents → 5 折</div>
+            <div class="dash">↓</div>
+            <div class="node hot">77/77/77/77/76；增强跟随 parent</div>
+          </div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>数据划分最怕泄漏。我是先划分再增强：384 个原始 parent 先分成 435 训练和 100 验证，增强只在各自的 split 里做。</p>
+          <p>100 张验证里有 35 张原始、65 张增强；选 checkpoint 只用 35 张原始，避免增强样本把验证集撑虚。</p>
+          <p>五折 OOF 也是按 parent 分组：同一个原始图的增强变体必须留在同一折，折数是 77/77/77/77/76，正好 384。</p>
+          <p>这样 OOF 的 0.925 比固定 split 的 0.957 低，是正常的，因为 <mark>OOF 更严格、没有增强泄漏</mark>。有人问“为什么两个数不一样”，我就这么解释。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">项目数字 + 追问</span></div>
+        <div class="projline ans"><span class="ptag">数字</span><div>
+          <p>384 parents：35 单模、39 侧向八边形、90 同轴八边形、220 四芯；五折 77/77/77/77/76；固定 split 0.957；OOF 0.925/0.910/0.920。</p>
+        </div></div>
+        <ul class="ask ans">
+          <li>为什么要 parent-exclusive？→ 同一张图的增强变体高度相似，跨折就是泄漏，指标会虚高。</li>
+          <li>35 张原始够选 checkpoint 吗？→ 够做 early stop，但方差大；所以补了 384 parent OOF 作为更稳的证据。</li>
+          <li>OOF 怎么算的？→ 五折各自训练，预测留出折，拼成 384 张完整 OOF，再用 MATLAB BSDS+NMS 统一评估。</li>
+          <li>0.957 和 0.925 哪个可信？→ 两个都报；固定 split 是论文主表，OOF 是泛化证据；不混着说。</li>
+          <li>增强样本算独立样本吗？→ 不算；它们和 parent 绑定，OOF 里不独立。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>固定 split 只有单 seed；OOF 五折但没做多 seed；100 张验证含增强，主表数字偏乐观。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c08">
+      <header class="chead">
+        <span class="num">08</span>
+        <h2 class="q">指标与消融：别把 Adapter 吹成万能</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>ODS=全局最优阈值 F1，OIS=每图最优阈值再平均，AP=PR 曲线面积；<mark>0.957 是固定 split，0.925 是 OOF</mark>；消融要讲边界，不吹“Adapter 完爆全参/LoRA”。</p></div>
+        <div class="tablewrap">
+          <table class="tbl wide">
+            <thead><tr><th>方法</th><th class="n">可训练参数</th><th class="n">ODS</th><th class="n">OIS</th><th class="n">AP</th></tr></thead>
+            <tbody>
+              <tr><td>source NBED</td><td class="n">—</td><td class="n">0.607</td><td class="n">0.680</td><td class="n">0.478</td></tr>
+              <tr><td>全参 B01</td><td class="n">40.015M</td><td class="n">0.960</td><td class="n">0.962</td><td class="n">0.957</td></tr>
+              <tr><td>只调 decoder/head（A00）</td><td class="n">1.387M</td><td class="n">0.951</td><td class="n">0.954</td><td class="n">0.952</td></tr>
+              <tr><td>Edge2Me（A11）</td><td class="n">1.404M</td><td class="n"><span class="hl">0.957</span></td><td class="n"><span class="hl">0.959</span></td><td class="n"><span class="hl">0.956</span></td></tr>
+              <tr><td>LoRA baseline</td><td class="n">160.9K</td><td class="n">0.933</td><td class="n">0.936</td><td class="n">0.938</td></tr>
+              <tr><td>历史全参行</td><td class="n">≈40M</td><td class="n warn">0.855</td><td class="n warn">0.897</td><td class="n warn">0.754</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>ODS 是给所有像素一个全局阈值，取 F1 最大的那个；OIS 是每张图各自取最优阈值再平均；AP 是 PR 曲线下的面积。</p>
+          <p>边界检测不用 mIoU，因为边界是单像素细线，IoU 对细线太敏感，一像素错位就掉很多；BSDS 这套 ODS/OIS/AP 更适合。</p>
+          <p>消融上我不说“Adapter 最强”：全参 B01 是 0.960，比我的 0.957 高 0.003，但参数 40.015M，是 28.5 倍；补跑 A00 只调 decoder/head 是 0.951，加 Adapter 到 0.957，约 +0.6 个点，但 A00 和 A11 选点不同，严格因果还要等四格重跑；LoRA baseline 是 0.933，但它只训 160.9K，原 decoder/head 全冻，参数预算只有我的 1/8.7，不是同一个预算下的公平比较。</p>
+          <p>初稿里的 0.855 是历史全参行，<mark>不能和 B01 混</mark>。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>为什么全参只高 0.003？→ 小样本 + 冻结 encoder 已经够；全参多 28.5x 参数，边际收益很小，还更容易过拟合/遗忘。</li>
+          <li>LoRA 为什么低？→ 它只训 160.9K，原 decoder/head 全冻；预算不同。给 LoRA 同样预算/层选择，结果可能不同。</li>
+          <li>A00 0.951 和论文 0.940 的 FRB-only 怎么不一样？→ 0.940 是旧协议的 FRB-only；A00 是统一协议补跑的无 Adapter 基线；两者不能直接连成消融链，严格四格是 A00/A10/A01/A11。</li>
+          <li>你的创新点到底是什么？→ 数据集 + 标注一致性 + 域适配策略 + 统一边界到几何评估；不是单独一个 Adapter。</li>
+          <li>为什么不用 mIoU/F1？→ 边界是细线，mIoU 对细线不敏感且容易被背景支配；ODS/OIS/AP 是边界检测的标准协议。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>四格严格消融还没跑完；单 seed；没有和 SAM/遥感分割大模型比。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c09">
+      <header class="chead">
+        <span class="num">09</span>
+        <h2 class="q">PEFT 全景与选型</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>全参、冻结、Adapter、LoRA、Prefix/Prompt 不是谁最强，是 <mark>“改哪里、改多少、能不能合并、数据够不够”</mark> 的折中。</p></div>
+        <div class="tablewrap">
+          <table class="tbl wide">
+            <thead><tr><th>方法</th><th>改什么</th><th>适合</th><th>代价</th></tr></thead>
+            <tbody>
+              <tr><td>全参</td><td>所有权重</td><td>数据足、域差距大、追求上限</td><td>显存/成本最高，易遗忘</td></tr>
+              <tr><td>冻结 + 只训头/decoder</td><td>输出侧</td><td>域差距在输出、数据少</td><td>容量有限</td></tr>
+              <tr><td>Adapter</td><td>层后插瓶颈</td><td>卷积网、多任务切换</td><td>有非线性，不能严格合并</td></tr>
+              <tr><td>LoRA</td><td>低秩旁路</td><td>Transformer/LLM、要合并</td><td>只改线性层，容量有限</td></tr>
+              <tr><td>Prefix/Prompt</td><td>输入侧软提示</td><td>生成任务、大模型</td><td>占上下文，不改变权重</td></tr>
+              <tr><td>QLoRA</td><td>4-bit 基座 + LoRA</td><td>显存紧</td><td>慢一点，有量化损失</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>选 PEFT 我一般问四个问题：数据够不够、域差距在哪、显存多少、推理要不要合并。</p>
+          <p>数据少、域差距在输出侧，就冻结 backbone，只训 decoder/head 或加 Adapter；Transformer/LLM 想保留基座、又要合并进权重，就用 LoRA；显存不够就 QLoRA；只是想让模型按某种风格/格式输出，Prefix/Prompt 可能就够。</p>
+          <p>我的论文是卷积 UNet++，所以用 1×1 瓶颈 Adapter，而不是 LoRA；如果是 LLM，我会优先 LoRA/QLoRA。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>Adapter 和 LoRA 怎么选？→ 卷积网/要多任务切换/能接受少量延迟 → Adapter；Transformer/要合并/不想改结构 → LoRA。</li>
+          <li>Prefix/Prompt 和 LoRA 区别？→ 改输入侧软提示 vs 改权重旁路；前者不改变权重，后者可合并。</li>
+          <li>什么时候全参？→ 数据足、域差距大、算力够、追求上限；否则 PEFT 更稳。</li>
+          <li>你实际做过哪些？→ 论文做了 Adapter + 全参/LoRA 对照；LLM SFT 没有生产经验，但流程和 LoRA/QLoRA 原理清楚。</li>
+          <li>为什么 PEFT 能省显存？→ 只存小部分参数的梯度/优化器状态；基座冻结，反向不存它的梯度。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没做过 Prefix/Prompt 和 LLM SFT 实操；选型经验主要来自 CV。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c10">
+      <header class="chead">
+        <span class="num">10</span>
+        <h2 class="q">LoRA 原理 + 手写</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>冻结 W，学 <mark>ΔW=BA</mark>；B 零初始化；rank 远小于 d,k；推理可合并 <mark>W+BA</mark>，不加延迟。</p></div>
+        <div class="chain">
+          <div class="chaintitle">前向与合并</div>
+          <div class="chips"><span class="chip">y = Wx</span><span class="ar">→</span><span class="chip">y = Wx + (α/r)BAx</span><span class="ar">→</span><span class="chip">W' = W + (α/r)BA</span><span class="ar">→</span><span class="chip">推理无额外延迟</span></div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">代码长这样</span></div>
+        <div class="sample ans">
+          <pre><code>import math
+import torch
+import torch.nn as nn
+
+class LoRALinear(nn.Module):
+    def __init__(self, base, r=8, alpha=16):
+        super().__init__()
+        self.base = base
+        for p in self.base.parameters():
+            p.requires_grad = False
+        self.A = nn.Parameter(torch.empty(r, base.in_features))
+        self.B = nn.Parameter(torch.zeros(base.out_features, r))
+        nn.init.kaiming_uniform_(self.A, a=math.sqrt(5))
+        self.scale = alpha / r
+
+    def forward(self, x):
+        return self.base(x) + self.scale * (x @ self.A.T @ self.B.T)</code></pre>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>LoRA 是冻结原权重 W，在旁边学一个低秩更新 ΔW=BA。</p>
+          <p>原来 W 是 d×k，要更新 dk 个参数；现在 A 是 r×k、B 是 d×r，只学 r(d+k)。r 一般 8 到 64，远小于 d、k。</p>
+          <p>初始化时 B 全零，所以刚加进去输出和原模型一样；A 用 Kaiming。前向是 Wx + (α/r)BAx。</p>
+          <p>推理时可以把 BA 加回 W，变成 W'，不增加延迟；这是它比 Adapter 好的地方。LoRA 通常加在注意力的 q/k/v/o 或 MLP 上，rank、alpha、加在哪几层都要调。卷积上也能做低秩，我的 LoRA baseline 就是 rank-8 conv LoRA，21 个 conv，160.9K 参数。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">4</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>为什么 B 零初始化？→ 初始 ΔW=0，保持基座行为，训练稳定。</li>
+          <li>rank 怎么选？→ 任务越复杂/数据越多，rank 可以大；通常 8/16/32/64 试；不是越大越好，会过拟合/省不了多少。</li>
+          <li>alpha 是什么？→ 缩放因子，常设 2r 或 r；控制 LoRA 更新幅度。</li>
+          <li>LoRA 能加在卷积上吗？→ 可以，把 conv 展成矩阵或做低秩卷积；我的 LoRA baseline 就是 rank-8 conv LoRA。</li>
+          <li>LoRA 和 Adapter 区别？→ LoRA 纯线性、可合并；Adapter 有非线性、串在层后、不能严格合并。</li>
+          <li>为什么 LoRA 推理能合并？→ ΔW 是线性的，BA 可以直接加到 W；Adapter 中间有 ReLU，不能严格合并。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>我的 LoRA 是论文 baseline，不是 LLM 实操；手写代码要能默写。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c11">
+      <header class="chead">
+        <span class="num">11</span>
+        <h2 class="q">QLoRA 与显存账</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p><mark>4-bit NF4 存基座 + BF16 算 + 只训 LoRA</mark>；双量化省常数；paged optimizer 防显存尖峰。</p></div>
+        <div class="chain">
+          <div class="chaintitle">四件事</div>
+          <div class="chips"><span class="chip">4-bit NF4 基座</span><span class="ar">→</span><span class="chip">前向反量化 BF16</span><span class="ar">→</span><span class="chip">只训 BF16 LoRA</span><span class="ar">→</span><span class="chip">双量化 + paged optimizer</span></div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>QLoRA 是在 LoRA 上加三件事。</p>
+          <p>第一，基座用 4-bit NF4 存，NF4 是按正态分位数设计的 4-bit 格式，比普通 int4 更适合权重分布；前向时反量化成 BF16 算，反向只更新 LoRA 的 BF16 参数。</p>
+          <p>第二，双量化，把量化常数再量化一次，省一点显存。第三，paged optimizer，显存尖峰时把优化器状态挪到 CPU，避免 OOM。</p>
+          <p>这样 7B 模型 QLoRA 大概 6 到 10G 就能跑，13B 十几 G，65B/70B 约 48G；具体看 batch、序列长度和并行。代价是训练慢一些，量化有精度损失。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>QLoRA 和 LoRA 区别？→ 基座 4-bit vs BF16；训练参数都是 LoRA；QLoRA 更省显存、更慢。</li>
+          <li>NF4 是什么？→ 4-bit NormalFloat，按正态分位数切桶，适合近似正态的权重。</li>
+          <li>双量化省多少？→ 量化常数从 32-bit 再压到 8-bit，约每参数 0.37 bit；65B 约 3G，7B 更少。</li>
+          <li>你用过吗？→ 没有生产实操；我的论文是 CV PEFT，没用到 4-bit；但原理和显存账清楚。</li>
+          <li>为什么 QLoRA 反向只更 LoRA？→ 基座 4-bit 冻结，反量化只在前向；反向只算 LoRA 的梯度。</li>
+          <li>显存怎么估？→ 权重 + LoRA + 梯度 + 优化器 + 激活；激活用 gradient checkpointing 压。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没实操 QLoRA/bitsandbytes；如果公司要求，需要上手。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c12">
+      <header class="chead">
+        <span class="num">12</span>
+        <h2 class="q">灾难性遗忘与小样本微调</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>小样本微调先防“学偏/学忘”：<mark>冻结、低 lr、早停、增强、parent-exclusive OOF</mark>；遗忘要看源域/通用能力回归，不只看目标域。</p></div>
+        <div class="lanes">
+          <div class="lane">
+            <div class="lanehead">过拟合</div>
+            <div class="node">冻结 encoder、光度增强、早停、OOF</div>
+            <div class="dash">↓</div>
+            <div class="node hot">train 降、val 反弹就停</div>
+          </div>
+          <div class="lane">
+            <div class="lanehead">遗忘</div>
+            <div class="node">低 lr、replay、Adapter/LoRA</div>
+            <div class="dash">↓</div>
+            <div class="node hot">源域/通用能力回归</div>
+          </div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>小样本微调最容易两个问题：过拟合和遗忘。</p>
+          <p>过拟合我靠冻结 encoder、只调 decoder/head、光度增强、早停、五折 parent-exclusive OOF；遗忘我目前做得不够，主要看目标域，没系统跑源域回归。</p>
+          <p>理论上缓解遗忘就是：冻结大部分参数、学习率别太大、早停、混一点源域数据 replay、或者用 LoRA/Adapter 这种不改基座的方式。</p>
+          <p>如果面试官问，我会如实说<mark>“目标域验证充分，源域遗忘回归是我下一步要补的”</mark>。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>435 张够吗？→ 不够训大模型，但够做域适配；靠预训练 + 冻结 + 增强 + OOF。</li>
+          <li>怎么判断过拟合？→ train loss 继续降、val loss 反弹；best epoch 早停；OOF 比固定 split 低。</li>
+          <li>怎么测遗忘？→ 在源域/通用边缘集上跑 ODS/OIS/AP，和微调前比；我没系统做，是缺口。</li>
+          <li>replay 怎么做？→ 混 10-20% 源域数据，或加正则/蒸馏；当前没做。</li>
+          <li>为什么 OOF 比固定 split 低？→ 更严格、没有增强泄漏；不是模型变差。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>源域遗忘回归没做；没有多 seed 方差；replay 没试。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c13">
+      <header class="chead">
+        <span class="num">13</span>
+        <h2 class="q">微调 vs RAG vs Prompt</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p><mark>Prompt 改输入，RAG 补事实，微调改能力/风格/格式</mark>；动态知识用 RAG，稳定模式用微调，两者可组合。</p></div>
+        <div class="tablewrap">
+          <table class="tbl wide">
+            <thead><tr><th>方法</th><th>改什么</th><th>适合</th><th>不适合</th></tr></thead>
+            <tbody>
+              <tr><td>Prompt</td><td>不改权重</td><td>格式/角色/少量示例</td><td>知识多、会变</td></tr>
+              <tr><td>RAG</td><td>外挂知识库</td><td>动态事实、可溯源、长尾</td><td>改风格/能力</td></tr>
+              <tr><td>微调</td><td>改权重</td><td>稳定术语、输出格式、工具调用、小模型</td><td>知识频繁变、数据少</td></tr>
+              <tr><td>组合</td><td>微调 + RAG</td><td>微调教“怎么答/怎么调工具”，RAG 给“答什么/依据”</td><td>两边都要维护</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>这三者不是替代关系。Prompt 是改输入，最快但上下文有限；RAG 是外挂知识，适合会变的事实、需要引用溯源；微调是改权重，适合稳定的领域术语、输出格式、工具调用风格，或者把大模型的能力蒸馏到小模型上。</p>
+          <p>我的判断是：知识会变、要溯源，用 RAG；能力/风格/格式稳定、要低延迟，用微调；两者可以组合，<mark>微调教它怎么用工具、怎么组织答案，RAG 给它事实依据</mark>。公司做 Agent + 时空 RAG，这个选型问题大概率会问。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>RAG 和微调冲突吗？→ 不冲突；微调改能力，RAG 补知识；可以同时用。</li>
+          <li>什么时候微调不划算？→ 知识频繁变、数据少、只改少量事实；这时 RAG/Prompt 更快。</li>
+          <li>怎么评估微调值不值？→ 固定评测集，比较 Prompt/RAG/微调的成功率、延迟、成本；不要只看 demo。</li>
+          <li>你们的 Agent 为什么还要微调？→ 意图路由/工具调用格式/领域术语稳定，可以用小模型微调降本；知识仍走 RAG。</li>
+          <li>微调能把知识灌进去吗？→ 能灌一部分，但更新慢、难溯源；动态知识还是 RAG。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>我没做过 LLM 微调和 RAG 的联合 A/B；项目里的评测更多是 RAG/Agent。</p></div>
+      </section>
+    </article>
+
+    <article class="card" id="c14">
+      <header class="chead">
+        <span class="num">14</span>
+        <h2 class="q">时空智子/遥感/多模态：把 Edge2Me 讲成他们想要的微调能力</h2>
+      </header>
+      <section class="grp first">
+        <div class="anchorbox"><span class="atag">锚</span><p>把 Edge2Me 讲成 <mark>“数据构建 + 标注一致性 + 域适配 + 下游评估”</mark> 的闭环，而不是“光纤专用”；遥感/多模态微调是同一套方法论换数据和 backbone。</p></div>
+        <div class="map">
+          <div class="maptitle">你的经历 ↔ 时空智子的产品</div>
+          <div class="mrow"><span class="mk">FEB-Bench 标注</span><span class="mv">↔ 双玄：多模态数据构建/标注/质检</span></div>
+          <div class="mrow"><span class="mk">PEFT 域适配</span><span class="mv">↔ 百工专业模型 / 悟空基模微调</span></div>
+          <div class="mrow"><span class="mk">边界 → 几何</span><span class="mv">↔ 遥感分割 → 下游任务指标</span></div>
+          <div class="mrow"><span class="mk">九思 Agent</span><span class="mv">↔ 时空 RAG + 知识图谱；我不碰 Agent 细节</span></div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">2</span><span class="gname">60 秒口述</span></div>
+        <div class="say ans">
+          <p>如果面试官问“你的光纤经验怎么用到遥感”，我会这么答：问题结构是一样的——跨成像域、边界/目标细、标注贵、下游指标比像素指标更重要。</p>
+          <p>我在 FEB-Bench 里做的是多模型伪边界融合 + 最少人工清理 + 亚像素细化，保证标注和下游几何测量一致；换到遥感，就是把“几何测量一致”换成“下游任务一致”，比如面积、变化检测、地物分类。</p>
+          <p>模型侧还是冻结预训练 backbone，只调 decoder/head 或加 LoRA/Adapter，按区域/传感器/时间做 parent-exclusive 划分，避免同区域泄漏。</p>
+          <p>多模态 VLM 的话，我会冻结 vision tower，训 projector + LLM 的 LoRA，数据用图文/指代/VQA，loss 只算 assistant，评测既看领域任务也看通用能力。MoE 我了解稀疏激活和路由，但没有实操，需要上手。</p>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <ul class="ask ans">
+          <li>你了解悟空吗？→ 16B MoE，激活约 4B，64 experts，Top-4；我没实操，但知道 MoE 微调要考虑专家并行/负载均衡/路由冻结。</li>
+          <li>遥感分割怎么做？→ 按区域/传感器划分，RS backbone，冻结 encoder，LoRA/Adapter，focal/dice，mIoU + 边界 + 下游。</li>
+          <li>VLM 怎么微调？→ 冻 vision tower，projector + LLM LoRA，数据/loss mask/评测。</li>
+          <li>你最大的缺口？→ 没有 LLM/VLM 生产微调，MoE 没实操；但 CV PEFT 的流程、参数账、评估、数据泄漏控制是通的。</li>
+          <li>为什么来时空智子？→ 你们的“双玄数据 + 悟空基模 + 九思 Agent”正好对应我做的“数据标注 + 域适配 + 下游评估”；我想把光纤这套小样本域适配方法迁到遥感和多模态。</li>
+        </ul>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没做过遥感/多模态/MoE 实操；要提前准备“我不会但我知道怎么学”的话术，不要硬装。</p></div>
+      </section>
+    </article>
+  </div>
+</div>
+<script>
+(function(){
+  var wrap=document.getElementById('wrap');
+  var btn=document.getElementById('mode');
+  var hint=document.getElementById('hint');
+  var list=document.getElementById('list');
+  wrap.classList.add('test');
+  function sync(){
+    var testing=wrap.classList.contains('test');
+    btn.textContent=testing?'自测模式':'全部显示';
+    hint.textContent=testing?'点卡片显形':'点卡片可隐藏';
+    btn.classList.toggle('on',testing);
+  }
+  sync();
+  btn.addEventListener('click',function(e){
+    e.stopPropagation();
+    wrap.classList.toggle('test');
+    [].forEach.call(list.querySelectorAll('.card'),function(c){c.classList.remove('shown');});
+    sync();
+  });
+  list.addEventListener('click',function(e){
+    var card=e.target.closest('.card');
+    if(!card||!wrap.classList.contains('test'))return;
+    card.classList.toggle('shown');
+  });
+})();
+</script>
+</body>
+</html>
