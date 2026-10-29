@@ -144,9 +144,9 @@
       <h1>背记卡 · 自我介绍</h1>
     </div>
     <div class="legend">
-      <span><i class="lg-v"></i>骨架</span>
       <span><i class="lg-g"></i>锚</span>
-      <span><i class="lg-b"></i>项目</span>
+      <span><i class="lg-v"></i>补充</span>
+      <span><i class="lg-b"></i>追问</span>
       <span><i class="lg-a"></i>缺口</span>
     </div>
   </div>
@@ -155,28 +155,38 @@
       <header class="chead"><span class="num">1</span><h2 class="q">自我介绍</h2></header>
       <section class="grp first">
         <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
-        <div class="anchorbox"><span class="atag">一句话</span><p>身份 → 三条主线（Agent / RAG / 评测）→ 复星实习 → Totoro 两个设计 → 论文</p></div>
-        <div class="lanes">
+        <div class="anchorbox"><span class="atag">一句话</span><p>身份 → 复星实习（Dify 村医助手 + 多平台评测 + DeepParser）→ Totoro 两个设计 → 分层评测 → 论文 → 想做的事｜827 字 / 约 3 分 20 秒</p></div>
+        <div class="note">
+          <div class="notetitle">补充</div>
+          <p>- <mark>时长偏长</mark>：827 字，正常语速约 3 分 20 秒，超出多数面试官对「简单介绍一下」的预期。压缩顺序：先砍第 7 段（自我反思），再砍第 6 段论文细节，第 1、2、4 段不动。</p>
+          <p>- 备用 90 秒版：只讲第 1 段（身份）+ 第 2 段（实习）+ 第 4 段（两个设计），约 420 字。</p>
+          <p>- 「全栈开发」和简历口径要对齐：简历若写「自主设计并开发」而实际有搭档，被追问时容易对不上，统一成「主导设计与开发」更稳。</p>
+          <p>- PGSQL 口述念「PostgreSQL」，不要念字母；DeepParser 第一次出现要补一句它是企业级 Agent 平台，对方不一定知道。</p>
+          <p>- 术语念准：UAT、并发、时延、混合检索、上下文完整性、引用回填。念错一次，前面说的全打折。</p>
         </div>
       </section>
       <section class="grp">
         <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>面试官好，我是纪思羽，上海大学电子信息硕士，2027 届，求职方向是 AI 应用开发，主线是 Agent、RAG 和评测。</p>
-          <p>Agent 侧，用 Spring AI Alibaba 做过意图路由、Function Calling 和结构化输出，落地 ReAct、Plan-Execute-Replan、Supervisor-Worker 三种执行模式。RAG 侧做过结构感知切分、Milvus 向量加 Lucene BM25 双路召回、RRF 融合、Rerank 精排和引用溯源。评测侧用 Hit@K、MRR、证据覆盖率分层指标，加人工校验和 LLM-as-a-Judge，把失败定位到具体环节。</p>
-          <p>实习在复星数智化与 AI 条线，做 Dify 应用部署、功能迭代和 UAT 验收，也做模型 API 兼容性、并发与时延评测，核心是把 AI 应用跑通并给出可验收结论。</p>
-          <p>把这些实践沉淀成 Totoro Nexus 可配置 Agent 与知识库评测平台，两个关键设计：一是 Agent 行为配置化、版本化，模型、知识范围、工具权限、执行模式都变数据，<mark>行为可追溯</mark>；二是检索命中后回不可变原文按 offset 扩窗、程序回填引用，解决答案跨 Chunk、证据不完整。</p>
-          <p>科研有一篇 IEEE TIM 一作在审，自建 FEB-Bench、提出 Edge2Me，只训练 3.51% 参数完成跨成像条件域适配。希望把这些能力用在真实业务场景。</p>
+          <p>面试官好，我叫纪思羽，本科和硕士都就读于上海大学，目前是电子信息专业的 2027 届硕士，研究方向是工业视觉测量，应聘方向是 AI 应用开发工程师。</p>
+          <p>在复星数智化与 AI 条线实习期间，我参与了基于 Dify 的村医助手功能迭代和 UAT 验收，也做过多家云平台模型 API 的兼容性、并发和时延评测，形成阶段性的选型建议。在参与 DeepParser 企业级 Agent 平台接入与评测的过程中，我进一步接触到不同业务对知识检索、上下文完整性和答案依据的要求。</p>
+          <p>结合这些实践，我全栈开发了 Totoro Nexus，这是一个基于 Java、Spring Boot 和 Spring AI Alibaba 的可配置 Agent 与知识库评测平台，覆盖资料入库、Agent 配置、对话和评测，技术上主要围绕 Agent 执行、RAG 和效果评测展开。</p>
+          <p>项目里，我重点做了两个设计。第一是把配置版本与运行记录关联起来，将模型、知识范围、工具权限和执行模式等配置版本化存在 PGSQL 里面，<mark>让历史请求能够追溯到当时的配置、工具调用和引用证据</mark>，为排查问题提供依据。第二是把检索定位和证据阅读分开：先通过向量与关键词混合检索定位相关小块，对通过筛选的命中自动补充周围的原文上下文；仍然不足时，再按需续读，并由程序回填和校验引用，减少单个片段缺少必要前后文的问题。</p>
+          <p>为了判断这些设计的实际效果，我还做了分层评测，结合召回指标、证据覆盖和回答检查，帮助区分问题发生在召回、重排、证据补充还是生成环节，而不是只看最终答案对不对。</p>
+          <p>科研方面，我有一篇 IEEE TIM 第一作者论文在审，研究工业视觉边界检测与几何测量，涉及自建数据集和参数高效适配。</p>
+          <p>当然，关于 Agent 的配置不存在一个具体的标答，我全栈构建的 Agent 里面很多设计仅仅基于我的一些考量：Agent 上下文的配置、Agent 的意图路由、RAG 的链路，都是基于我具体的项目场景做的选型。如果让我重做一次，我确实能发现不少可以改进的点。我希望能够加入贵司，把自己学习的知识落到具体的业务中。</p>
         </div>
       </section>
       <section class="grp">
         <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
         <ul class="ask ans">
-            <li>为什么从通信电子信息转到 AI 应用开发？→ 先给一句自己的理由再接三条主线，别跳过去。</li>
-            <li>Totoro 两个设计分别解决什么？→ 一是行为可追溯，二是证据完整不跨块、不串版本。</li>
-            <li>项目是你自己做的吗？→ 主导设计、迭代和验收，编码大量用 AI 辅助，但方案取舍和最终行为由我负责。</li>
+            <li>为什么从工业视觉测量转到 AI 应用开发？→ 研究方向本质是「把通用模型适配到专用场景」；我更想做把模型接进业务这一层——模型能力有边界，工程能补，评测能证明补住了。三句，20 秒内。</li>
+            <li>Totoro 两个设计分别解决什么？→ 一是配置版本与运行记录绑定，历史请求能追溯到当时的模型、知识范围、工具权限、执行模式和引用证据；二是检索定位与证据阅读分开，命中后补上下文、不足再续读，引用由程序回填校验。</li>
+            <li>分层评测怎么定位到环节？→ 召回指标看召回、证据覆盖看重排与补充、回答检查看生成；三者分开看，才能说清问题卡在哪一环。</li>
+            <li>DeepParser 具体做了什么？→ 企业级 Agent 平台的接入与评测，让我接触到不同业务对知识检索、上下文完整性和答案依据的不同要求。</li>
+            <li>项目是你一个人做的吗？→ 方案设计、技术选型和评测体系由我主导，开发我参与了主体实现；口述里的「全栈开发」和简历口径要保持一致。</li>
         </ul>
-        <div class="gapline ans"><span class="gtag">缺口</span><p>原答没回答"为什么转方向"，要补一句自己的理由；论文名和 3.51% 要能口头展开，不能只会念词。</p></div>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>两处风险：一是「全栈开发」与简历「自主设计并开发」的口径要对齐，若实际有搭档共同开发，被追问时容易对不上；二是 827 字约 3 分 20 秒，超出「简单介绍」的预期，必须准备 90 秒删减版（第 1、2、4 段）。</p></div>
       </section>
     </article>
   </div>
