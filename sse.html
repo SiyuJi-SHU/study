@@ -194,12 +194,12 @@ data: {"finish_reason": "stop"}</code></pre>
       <section class="grp">
         <div class="gh"><span class="gnum">3</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>SSE 就是服务端往客户端持续推文本。很多人第一句说"打字机效果"，那只说了现象，没说机制。我一般拆成三层：<mark>格式、传输、客户端</mark>。</p>
-          <p>格式这一层，响应头声明 <code>text/event-stream</code>，每条消息以 <code>data:</code> 开头，字段可以有 event、id、retry，两条消息之间用一个空行隔开。空行才是"这一条结束"的信号。</p>
-          <p>传输这一层，底下就是 HTTP 的分块传输，模型吐出几个字就往外发几个字，所以用户不用等全部生成完。</p>
-          <p>客户端这一层，有个流传很广的说法——"SSE 只支持 GET"。这句话<strong>对一半</strong>：受限的是浏览器原生的 EventSource 接口，它不能 POST、不能带自定义请求头。但你换成 fetch 自己读流，POST 完全没问题。<mark>OpenAI、DeepSeek 的流式接口就是 POST 返回 text/event-stream</mark>。</p>
-          <p>所以结论是：SSE 不但能用，它就是大模型流式的默认方案。真正要小心的是工程上的三个坑——反向代理默认会缓冲、HTTP/1.1 同域连接数有限、长连接要心跳。</p>
-          <p>最后多模态要说清楚在哪一层问：传输层什么字节都能传；SSE 消息层是文本，图片得 base64 内联，或者只发 URL 让前端自己取。</p>
+          <p>SSE，一句话，就是服务端往客户端持续推文本。很多人被问到这个，开口就是"打字机效果"——那只是现象，不是机制。我会拆成三层来说：<mark>格式、传输、客户端</mark>。</p>
+          <p>先说格式。响应头声明 <code>text/event-stream</code>，每条消息以 <code>data:</code> 开头，还可以带 event、id、retry 三个字段。两条消息之间用一个空行隔开——空行才是"这一条结束了"的信号，这是最容易写错的地方。</p>
+          <p>再说传输。底下其实就是 HTTP 的分块传输，模型吐出几个字，就往外发几个字，所以用户不用等全部生成完。它不是什么黑科技。</p>
+          <p>最后是客户端。这里有个流传很广的说法："SSE 只支持 GET"。这句话<strong>对一半</strong>。受限的是浏览器原生的 EventSource 接口，它不能 POST、不能带自定义请求头。但你换成 fetch 自己读流，POST 完全没问题。<mark>OpenAI、DeepSeek 的流式接口就是 POST 返回 text/event-stream</mark>，随手就能验证。</p>
+          <p>所以我的结论是：SSE 不但能用，它就是大模型流式的默认方案。真正要留心的是工程上的三个坑——反向代理默认会缓冲响应，得关掉；HTTP/1.1 同域连接数有限，多标签页会互相抢占；长连接要心跳，不然会被中间设备掐掉。</p>
+          <p>要是被问到多模态，先分清问的是哪一层：传输层什么字节都能传；但 SSE 消息层是文本，图片要么 base64 内联，要么只发 URL，让前端自己去取。</p>
         </div>
       </section>
 
