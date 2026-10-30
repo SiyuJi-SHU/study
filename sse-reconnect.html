@@ -144,38 +144,73 @@
       <h1>背记卡 · SSE 断线续接</h1>
     </div>
     <div class="legend">
-      <span><i class="lg-v"></i>骨架</span>
       <span><i class="lg-g"></i>锚</span>
-      <span><i class="lg-b"></i>项目</span>
+      <span><i class="lg-v"></i>机制</span>
+      <span><i class="lg-b"></i>追问</span>
       <span><i class="lg-a"></i>缺口</span>
     </div>
   </div>
   <div id="list">
     <article class="card">
       <header class="chead"><span class="num">1</span><h2 class="q">SSE 断线续接</h2></header>
+
       <section class="grp first">
-        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
-        <div class="anchorbox"><span class="atag">一句话</span><p>先落库再推 → sequence 游标 → after 重连 → 不用 WS → 三个坑</p></div>
-        <div class="lanes">
+        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和三层</span></div>
+        <div class="anchorbox"><span class="atag">一句话</span><p>这题不考什么是 SSE，考<mark>断了还能不能接上</mark>：先落库再推 → sequence 游标 → after 补发 → 幂等去重</p></div>
+        <div class="plans">
+          <div class="prow phead"><span>层</span><span>靠什么</span><span>解决什么</span></div>
+          <div class="prow"><span class="pc">协议层</span><span>事件 id + Last-Event-ID</span><span>浏览器知道从哪条续</span></div>
+          <div class="prow"><span class="pc">业务层</span><span>事件落库 + 递增 sequence</span><span>重启、换实例还能补</span></div>
+          <div class="prow"><span class="pc">体验层</span><span>前端记游标 + 占位 + 重试</span><span>不重复、不缺段、不干等</span></div>
         </div>
       </section>
+
       <section class="grp">
-        <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
+        <div class="gh"><span class="gnum">2</span><span class="gname">一次断线长什么样</span></div>
+        <div class="sample">
+          <div class="samptext">正常的流，每条事件都带 id；断开时前端只记住最后收到的那条：</div>
+<pre><code>event: token
+id: 12
+data: {"delta": "今天"}
+
+event: token
+id: 13
+data: {"delta": "天气"}
+
+← 这里网络断了，前端最后收到 id: 13</code></pre>
+          <div class="samptext">重连时把游标带回来，服务端只补大于它的事件：</div>
+<pre><code>GET /api/runs/123/events?after=13
+Last-Event-ID: 13
+
+-- 服务端
+SELECT * FROM run_events
+ WHERE run_id = 123 AND seq &gt; 13
+ ORDER BY seq</code></pre>
+        </div>
+      </section>
+
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>事件走"先落库再推送"：每个 Run 的进度写进 run_events，主键是 run_id 加递增 sequence，SSE 只负责把新事件推给浏览器。</p>
-          <p>断线重连时，前端记录最后消费的 sequence，带 after 重新订阅，服务端只查大于它的事件；浏览器的 Last-Event-ID 也能当游标。因为事件已持久化，进程重启还能补；客户端按 sequence 幂等去重，重复事件直接丢。</p>
-          <p>不用 WebSocket，因为这条链路只有服务端到客户端的单向流。SSE 建立在 HTTP 上，浏览器自带重连，网关鉴权沿用现有配置；WebSocket 双向、适合协同，但心跳、重连、代理兼容都要自己维护。</p>
-          <p>三个坑要主动说：HTTP/1.1 同域连接数有限，多标签页会占连接；反向代理要关响应缓冲，否则事件被攒着不发；长连接要心跳，避免中间设备超时断。</p>
+          <p>这题考的不是 SSE 是什么，是<mark>它断了以后还能不能接上</mark>。场景很具体：用户切到后台、网络抖一下，流就断了，前端只收到半句话。重连之后会出现三种病——答案重复、答案缺一段、或者干脆从头重新生成，token 白烧一遍。</p>
+          <p>我的方案第一句就是：<strong>先落库，再推送</strong>。每个 Run 的进度写进 run_events，主键是 run_id 加递增的 sequence，SSE 只负责把新事件推给浏览器，它不承担"记住历史"这件事。</p>
+          <p>断线的时候，前端记录最后消费到的 sequence，重连时带 <code>after</code> 重新订阅，服务端只查大于它的事件；浏览器的 <code>Last-Event-ID</code> 请求头也能当这个游标用。因为事件已经落库，进程重启、换台机器都还能补。</p>
+          <p>不重复靠两件事：客户端按 sequence 幂等去重，重复的直接丢；已经推过的 token 不重算，重算意味着重复调用模型，成本和结果都对不上。</p>
+          <p>体验层再补一刀：前端先占位、给一个手动重试，别让用户对着半句话干等。</p>
+          <p>最后说边界：<mark>如果事件只在内存里，重连就只能从头重生成</mark>。所以断线续接的前提是这次 Run 的事件可回放，不是一条纯内存流——这就是"落库"和"不落库"的分水岭。</p>
         </div>
       </section>
+
       <section class="grp">
-        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <div class="gh"><span class="gnum">4</span><span class="gname">可能被追问</span></div>
         <ul class="ask ans">
-            <li>为什么不直接用 WebSocket？→ 单向流不需要双向，SSE 基于 HTTP 自带重连，鉴权沿用。</li>
-            <li>断线后怎么不丢、不重复？→ 先落库，sequence 当游标，after 补拉，客户端幂等去重。</li>
-            <li>三个坑是什么？→ 连接数、代理缓冲、心跳。</li>
+          <li>为什么不用 WebSocket？→ 这条链路只有服务端到客户端的单向流；SSE 建立在 HTTP 上，浏览器自带重连，网关鉴权能沿用。WebSocket 双向，但心跳、重连、代理兼容都得自己维护。</li>
+          <li>不落库行不行？→ 行，但断线只能从头重生成，既浪费 token，也可能两次答案不一致。</li>
+          <li>多实例部署怎么办？→ 事件流要放共享存储（库或 Redis），纯进程内存扛不住重启和横向扩容。</li>
+          <li>客户端怎么知道自己漏了哪条？→ 记 last seq，或用服务端下发的 Last-Event-ID；服务端按 seq 严格递增，就不会出现乱序。</li>
+          <li>事件表会不会无限膨胀？→ 按 Run 定期归档或设保留期，只保留最近 N 条给重连用。</li>
         </ul>
-        <div class="gapline ans"><span class="gtag">缺口</span><p>"先落库再推"是和不落库方案的本质区别，要作为第一句讲出。</p></div>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>"先落库再推"要作为第一句讲出来，这是和不落库方案的本质区别；另外事件保留期、多实例下的共享存储，要能说清有没有做。</p></div>
       </section>
     </article>
   </div>
