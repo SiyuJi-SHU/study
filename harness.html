@@ -141,7 +141,7 @@
 <div class="wrap" id="wrap">
   <div class="top">
     <div class="toprow">
-      <h1>背记卡 · Harness 与编排</h1>
+      <h1>背记卡 · Harness 与 Runtime</h1>
     </div>
     <div class="legend">
       <span><i class="lg-v"></i>骨架</span>
@@ -152,46 +152,55 @@
   </div>
   <div id="list">
     <article class="card">
-      <header class="chead"><span class="num">1</span><h2 class="q">Harness 与编排</h2></header>
+      <header class="chead"><span class="num">1</span><h2 class="q">Harness 与 Runtime</h2></header>
       <section class="grp first">
-        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
-        <div class="anchorbox"><span class="atag">一句话</span><p>Harness 等于模型之外的一切；<mark>模型管说话，工程管其余</mark></p></div>
+        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和六层</span></div>
+        <div class="anchorbox"><span class="atag">一句话</span><p>Harness 是驱动模型干活的<mark>脚手架</mark>，Runtime 是承载和治理一次运行的<mark>底座</mark>；模型只负责说话，其余都是工程。</p></div>
         <div class="plans">
-          <div class="prow phead"><span>层</span><span>通用做法</span><span>我的项目</span></div>
-          <div class="prow"><span class="pc">层</span><span>做什么</span><span>我的项目</span></div>
-          <div class="prow"><span class="pc">接入</span><span>会话、流式输出、断线续接</span><span>SSE 推事件，按序号续传</span></div>
-          <div class="prow"><span class="pc">上下文</span><span>拼装、压缩、预算</span><span>四档字符预算，滑窗，历史存库</span></div>
-          <div class="prow"><span class="pc">循环</span><span>推理、调工具、看结果、再推理</span><span>ReAct、Plan、固定工作流三种执行器</span></div>
-          <div class="prow"><span class="pc">检索</span><span>找证据</span><span>混合召回、扩窗、引用绑定</span></div>
-          <div class="prow"><span class="pc">模型</span><span>选模型、参数、超时、降级</span><span>多模型配置，超时中断</span></div>
-          <div class="prow"><span class="pc">工具</span><span>定义、鉴权、执行、回填</span><span>工具网关：白名单、参数校验、scope、只读、调用预算</span></div>
-        </div>
-        <div class="note">
-          <div class="notetitle">补充</div>
-          <p>Claude Code 是这套架子的样板：上下文用到一定比例就压缩，复杂任务拆子 Agent，跨会话的东西放外部记忆。它的压缩水位是经验值，不是标准。</p>
-        </div>
-        <div class="lanes">
+          <div class="prow phead"><span>层</span><span>做什么</span><span>我的项目</span></div>
+          <div class="prow"><span class="pc">接入</span><span>会话、版本、流式、断线续接</span><span>Session 创建时固定 agent_version；SSE 推 run_events，按 Last-Event-ID 补</span></div>
+          <div class="prow"><span class="pc">上下文</span><span>拼装、压缩、预算</span><span>最近 4 条有效运行；1600 / 8000 / 24000 三档；证据另 60000 字</span></div>
+          <div class="prow"><span class="pc">循环</span><span>推理、调工具、看结果、再推理</span><span>ReAct、Plan、固定 Workflow 三种执行器</span></div>
+          <div class="prow"><span class="pc">检索</span><span>找证据</span><span>三模式召回、RRF、rerank 0.15、扩窗 6000、程序回填引用</span></div>
+          <div class="prow"><span class="pc">模型</span><span>选模型、参数、超时、降级</span><span>按版本选模型；ModelDeadline 超时中断</span></div>
+          <div class="prow"><span class="pc">工具</span><span>定义、鉴权、执行、回填</span><span>工具网关：白名单、参数、scope、只读、调用预算</span></div>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
+        <div class="gh"><span class="gnum">2</span><span class="gname">两个词的边界</span></div>
+        <div class="plans">
+          <div class="prow phead"><span></span><span>Harness</span><span>Runtime</span></div>
+          <div class="prow"><span class="pc">站位</span><span>面向任务：喂任务、跑循环、收结果</span><span>面向运行：承载、治理、持久化</span></div>
+          <div class="prow"><span class="pc">管什么</span><span>提示词、工具 schema、终止条件、评测</span><span>会话版本、Run 状态机、并发、超时、事件、恢复</span></div>
+          <div class="prow"><span class="pc">我项目里</span><span>三个执行器 + 评测 Runner</span><span>AgentRuntime + AgentRunStore</span></div>
+          <div class="prow"><span class="pc">交集</span><span>预算和超时：脚手架里消费</span><span>预算和超时：治理里限额</span></div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>Harness 这个词听着玄，其实就是模型之外的那一整套架子。模型只负责生成文字，它不会自己记上下文、不会自己调工具、不会自己重试、也不会自己恢复中断。</p>
-          <p>这套架子一般分六层。接入层管会话和流式输出；上下文层管拼装和压缩；循环层管推理、调工具、看结果、再推理；检索层负责找证据；模型层管选模型、参数、超时和降级；工具层管定义、鉴权、执行和结果回填。</p>
-          <p>有代表性的样板是 Claude Code：上下文用到一定比例就开始压缩，复杂任务拆成子 Agent，跨会话的信息放到外部记忆。它的水位是经验值，不是行业标准。</p>
-          <p>这类系统的控制流也是一代代演进过来的：最早的问答只靠模型自己；后来加检索，变成先找证据再回答；再后来加意图识别和路由，先判断做什么再分给对应流程；最后是多步循环和图编排，可以中断、可以恢复。</p>
-          <p>我项目在第三代加固定工作流。三种执行模式是写死的，好处是可预测、好评测；代价是不支持任意拓扑，也没做自动摘要和跨会话记忆。</p>
+          <p>Harness 和 Runtime 都是模型之外的控制层，但站位不一样。</p>
+          <p><mark>Harness 是驱动模型干活的脚手架</mark>：喂任务、给工具、跑循环、收结果，它决定模型看到什么、能调什么、什么时候停。<mark>Runtime 是承载和治理一次运行的底座</mark>：会话和版本、Run 的状态、并发、超时、事件、持久化。</p>
+          <p>我项目里两者都能指到代码。Runtime 在 AgentRuntime 和 AgentRunStore——Session 创建时固定版本，一个会话同时只有一个活动 Run，事件按 (run_id, sequence) 追加，SSE 推给前端，超时由 ModelDeadline 中断。Harness 有两处：三个执行器，ReAct 的 tool loop、Plan 的三阶段、Workflow 的固定流程；还有评测 Runner，喂 case、跑完、收集，算 hit@k、targetRecall、MRR，再按 candidate_miss、rerank_loss、evidence_gap 归因。</p>
+          <p>这套架子一般分六层：接入、上下文、循环、检索、模型、工具。控制流是一代代演进过来的：最早的问答只靠模型自己；后来加检索，先找证据再回答；再加意图识别和路由；最后是多步循环或图编排，可以中断、可以恢复。</p>
+          <p>我项目在第三代加固定工作流。三种执行模式写死，好处是可预测、好评测；代价是不支持任意拓扑，也没有自动摘要和跨会话记忆。</p>
+          <p>一句话：<mark>Harness 决定模型怎么干活，Runtime 决定这次运行怎么被管住。</mark></p>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <div class="gh"><span class="gnum">4</span><span class="gname">可能被追问</span></div>
         <ul class="ask ans">
+            <li>Runtime 是新概念吗？→ 不是，JVM、容器 runtime 早就有；新的是 Agent Runtime 这个叫法，各家定义还不统一。</li>
+            <li>一次请求链路里哪段是 Runtime？→ Session 固定版本、Run 状态机、事件和持久化那段是 Runtime；执行器怎么驱动模型、评测怎么跑，是 Harness。</li>
+            <li>两者有重叠吗？→ 有：预算和超时既在脚手架里消费，也在治理里限额；但代码上是两层。</li>
+            <li>你项目的 Harness 在哪？→ 三个执行器加评测 Runner，不是抽象名词。</li>
             <li>Harness 和框架有什么区别？→ 框架提供积木，Harness 是把积木装成能跑的系统，含预算、恢复、降级。</li>
-            <li>为什么不做通用图编排？→ 我的流程是固定的三种，图编排带来灵活性，也带来不可预测和调试成本。</li>
-            <li>Claude Code 的压缩你能用吗？→ 思路能借，但要落在我的四档预算上，不能照抄百分比。</li>
+            <li>为什么不做通用图编排？→ 流程是固定的三种，图编排带来灵活性，也带来不可预测和调试成本。</li>
+            <li>Claude Code 的压缩你能用吗？→ 思路能借，水位是经验值，要落到我的三档预算上，不能照抄百分比。</li>
             <li>子 Agent 一定要有吗？→ 只在任务可并行、方向能拆开时才值得；否则就是多一层调度。</li>
         </ul>
-        <div class="gapline ans"><span class="gtag">缺口</span><p>没有通用图编排、没有自动摘要、没有跨会话记忆。</p></div>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没有通用图编排、没有自动摘要、没有跨会话记忆；评测 Harness 只在离线跑，没接 CI；工具都在本进程执行，没有沙箱隔离。</p></div>
+        <div class="gapline ans" style="margin-top:8px"><span class="gtag">边界</span><p>这两个词各家定义不统一，我给的是工程口径，不是标准定义。</p></div>
       </section>
     </article>
   </div>
