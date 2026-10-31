@@ -154,30 +154,47 @@
     <article class="card">
       <header class="chead"><span class="num">1</span><h2 class="q">幻觉与提示注入</h2></header>
       <section class="grp first">
-        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
-        <div class="anchorbox"><span class="atag">一句话</span><p>策略 → 执行 → 引用 → 权限 → 兜底</p></div>
-        <div class="lanes">
+        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和两类问题</span></div>
+        <div class="anchorbox"><span class="atag">一句话</span><p>两类问题 → 幻觉三源 → 五层防线 → 不说消除</p></div>
+        <div class="plans">
+          <div class="prow phead"><span>对比</span><span>幻觉</span><span>提示注入</span></div>
+          <div class="prow"><span class="pc">是什么</span><span>输出没有证据支持，但读起来通顺</span><span>输入里夹了指令，想覆盖系统规则</span></div>
+          <div class="prow"><span class="pc">从哪来</span><span>知识缺口、生成越界、语义误读</span><span>用户输入、检索文档、附件、工具返回</span></div>
+          <div class="prow"><span class="pc">后果</span><span>答错还像对的</span><span>泄露提示、越权调工具、被带偏</span></div>
+          <div class="prow"><span class="pc">治什么</span><span>策略、强制取证、引用回填</span><span>权限、白名单、只读、scope</span></div>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
+        <div class="gh"><span class="gnum">2</span><span class="gname">幻觉的三个来源</span></div>
+        <div class="plans">
+          <div class="prow phead"><span>来源</span><span>表现</span><span>靠什么治</span></div>
+          <div class="prow"><span class="pc">知识缺口</span><span>库里没有，或召回没拿到</span><span>限定通识、强制取证、没证据就说没找到</span></div>
+          <div class="prow"><span class="pc">生成越界</span><span>证据在，模型自己加戏</span><span>引用层：只认 Evidence ID，程序回填原文</span></div>
+          <div class="prow"><span class="pc">语义误读</span><span>引用了真原文，但理解错了</span><span>引用校验拦不住，只能靠评测和人工</span></div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>这题按一条链答：先限制它能不能用通识，再规定它拿什么答，然后校验引用，最后用评测兜底。</p>
-          <p>第一层策略。Agent 有 allowGeneralKnowledge 开关，代码里还会做第二次判断：只有开关打开、不是 Workflow、不是事故诊断、basis 是 GENERAL 或 MIXED，才允许通识；否则一律按必须取证处理，Router 误判也过不了。</p>
-          <p>第二层执行。知识问题先取证；没证据就说明本次没找到，或让用户补充；System 里明确写本轮允不允许通识，不让模型自由发挥。</p>
-          <p>第三层引用。模型只提交 Evidence ID 和句子编号，原文由程序从不可变原文取，再校验引用存在、版本一致、数字对得上；校验不过就修复或降级。</p>
-          <p>第四层权限。检索内容、附件、工具返回都当不可信数据，没有 System 权限；真正的防线是工具白名单、只读和 scope，不是提示词。</p>
-          <p>第五层兜底。Router 仍会误判、模型也可能不听提示，所以靠评测和人工抽检发现问题。对外只说降低无依据回答，不说消除幻觉。</p>
+          <p>这题是两类问题。幻觉是模型给了没有证据支持的内容，读起来通顺，原文里没有；提示注入是输入里夹了指令，想覆盖系统规则。一个自己编，一个被诱导，注入还可能引到越权调用。</p>
+          <p>幻觉有三个来源：知识缺口、生成越界、语义误读。知识缺口靠策略和执行层治：Agent 有 allowGeneralKnowledge 开关，代码里还做第二道判断——开关打开、不是 Workflow、不是事故诊断、basis 是 GENERAL 或 MIXED 才允许通识，否则一律强制取证；没证据就说明没找到，或让用户补充。</p>
+          <p>生成越界靠引用层：模型只提交 Evidence ID 和段落，原文由程序从不可变原文回填，再校验引用存在、版本一致、区间对得上；校验不过就修复一次，再不过就降级。但这一层抓不住语义误读：原文写“只有管理员可导出”，回答成“所有人可导出”，引用是真的也可能是错的，目前只能靠评测和抽检。</p>
+          <p>提示注入的防线不在提示词，在权限：检索内容、附件、工具返回都当数据不当指令，它们没有 system 权限；工具只能走白名单，只读，受 scope 限制。真被诱导，能做的动作也有限。</p>
+          <p>最后是兜底：Router 会误判，模型也可能不听，靠评测和人工抽检发现。对外只说降低无依据回答，不说消除幻觉。</p>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <div class="gh"><span class="gnum">4</span><span class="gname">可能被追问</span></div>
         <ul class="ask ans">
-            <li>开关被 Router 误判绕过怎么办？→ 代码里二次判断，条件不满足一律强制取证。</li>
-            <li>文档里藏"忽略前面指令"怎么防？→ 这些内容没有 System 权限，只当资料看；防线是白名单、只读、scope。</li>
-            <li>为什么不下"消除幻觉"的结论？→ 模型是概率的，只能说降低无依据回答。</li>
+            <li>幻觉和提示注入什么区别？→ 幻觉是自己编，注入是输入里的指令劫持；注入能引起幻觉，也能引起越权动作。</li>
+            <li>幻觉一般从哪来？→ 三类：知识缺口、生成越界、语义误读。</li>
+            <li>引用校验能发现语义误读吗？→ 不能，它只校验引用存在、版本和区间一致，语义是否支持还要靠评测或人工。</li>
+            <li>文档里藏“忽略前面指令”怎么办？→ 当数据不当指令，没有 system 权限；真防线是白名单、只读、scope。</li>
+            <li>温度调到 0 能消掉幻觉吗？→ 不能，它只降低随机性，不解决知识缺口和误读。</li>
+            <li>为什么不说消除幻觉？→ 模型是概率的，只能说降低无依据回答。</li>
+            <li>开关被 Router 误判绕过怎么办？→ 代码里二次判断，条件不满足就强制取证。</li>
         </ul>
-        <div class="gapline ans"><span class="gtag">缺口</span><p>权限层要强调"检索内容是资料不是指令"，别让人觉得只靠 prompt 防注入。</p></div>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>语义误读拦不住；除了引用校验没做自动事实核对；注入只防了工具动作，没做内容脱敏。</p></div>
       </section>
     </article>
   </div>

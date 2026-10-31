@@ -103,6 +103,7 @@
   .prow:first-child{border-top:none}
   .phead{background:#faf9f5;color:var(--muted);font-size:10.5px;font-weight:700;letter-spacing:1px}
   .pc{color:var(--violet);font-weight:700}
+  .plans4 .prow{grid-template-columns:60px 1fr .85fr 1.45fr;font-size:12.5px;padding:8px 11px}
 
   .why{margin-top:11px;background:#fbfaf5;border:1px solid var(--line);border-radius:12px;padding:11px 13px}
   .whytitle{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:1.2px;margin-bottom:7px}
@@ -129,6 +130,8 @@
   @media (max-width:520px){
     .prow{grid-template-columns:84px 1fr;row-gap:2px}
     .prow span:nth-child(3){grid-column:2}
+    .plans4 .prow{grid-template-columns:58px 1fr;row-gap:3px}
+    .plans4 .prow span:nth-child(n+3){grid-column:2}
     .wrap{padding:14px 12px 70px}
     .card{padding:16px 15px 14px;border-radius:16px}
     .q{font-size:16px} .anchorbox p{font-size:16px}
@@ -156,7 +159,21 @@
       <section class="grp first">
         <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
         <div class="anchorbox"><span class="atag">一句话</span><p>测试集 → 三指标 → 三段归因 → 数据侧优先 → ungraded</p></div>
-        <div class="lanes">
+        <div class="chain">
+          <div class="chaintitle">检索三指标 · 证据覆盖另算</div>
+          <div class="chips">
+            <span class="chip">候选命中</span><span class="ar">·</span>
+            <span class="chip">Hit@K</span><span class="ar">·</span>
+            <span class="chip">MRR</span><span class="ar">·</span>
+            <span class="chip">targetRecall</span>
+          </div>
+        </div>
+        <div class="plans plans4">
+          <div class="prow phead"><span>阶段</span><span>指标</span><span>归因</span><span>先查什么</span></div>
+          <div class="prow"><span class="pc">候选池</span><span>候选命中</span><span>candidate_miss</span><span>分词、Embedding、过滤、切片；candidateTopK 10，混合最多 20</span></div>
+          <div class="prow"><span class="pc">最终 TopK</span><span>Hit@K · MRR</span><span>rerank_loss</span><span>RRF 融合、精排阈值；topK 3，rerank ≥ 0.15</span></div>
+          <div class="prow"><span class="pc">证据窗口</span><span>targetRecall</span><span>evidence_gap</span><span>offset、扩窗、段落边界；单窗 6000 字，预算 60000</span></div>
+          <div class="prow"><span class="pc">回答</span><span>Judge / 人工</span><span>三段都过才查模型</span><span>Prompt、结构化输出、引用校验；ungraded 不进分母</span></div>
         </div>
       </section>
       <section class="grp">
@@ -164,7 +181,7 @@
         <div class="say ans">
           <p>先把问题做成有标准答案的测试集，每条标好该命中的文档和窗口。检索看三个指标：目标有没有进候选、最终 TopK 有没有命中、MRR 排得靠不靠前；证据看最终上下文有没有覆盖回答需要的原文。</p>
           <p>用户答错时按顺序查三段：目标没进候选是 candidate miss，查分词、Embedding、过滤条件；进了候选但 TopK 没有是 rerank loss，查融合和精排；TopK 有但窗口缺证据是 evidence gap，查 offset 和扩窗。三段都过了，才怀疑 Prompt、结构化输出和模型。</p>
-          <p>所以提召回先改数据侧，不是先调参：切片、元数据、标签体系决定什么能进候选；查询改写解决指代和口语化；混合检索补关键词。TopK 和 Embedding 维度是边缘调整，目标没进候选时加 TopK 没用。</p>
+          <p>所以提召回先改数据侧，不是先调参：切片、元数据、标签体系决定什么能进候选；查询改写解决指代和口语化；混合检索补关键词。加最终 topK 救不回没入候选的目标；加 candidateTopK 只影响能不能进候选，也不是数据侧的解法。</p>
           <p>Judge 没评出来记 ungraded，不算失败，也不进准确率分母。结论只对应当前代码、Agent 版本、知识版本和检索配置，不能当 SLA。</p>
         </div>
       </section>
@@ -174,8 +191,9 @@
             <li>用户说答错了你怎么归因？→ 三段顺序：candidate miss → rerank loss → evidence gap，都过了才查模型。</li>
             <li>提召回先动哪？→ 数据侧，切片和标签决定能不能进候选，调 TopK 是边缘。</li>
             <li>没评出来的题怎么算？→ 记 ungraded，不进准确率分母。</li>
+            <li>目标 ID 没命中就一定算错吗？→ 不一定，可能找到了另一条有效证据，代码里区分 alternative_evidence。</li>
         </ul>
-        <div class="gapline ans"><span class="gtag">缺口</span><p>三段的名字（candidate miss / rerank loss / evidence gap）是加分项，要背熟别混。</p></div>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>三段的名字（candidate_miss / rerank_loss / evidence_gap）是加分项，要背熟别混；三段我做了，alternative_evidence 这条判断还没有单独统计。</p></div>
       </section>
     </article>
   </div>

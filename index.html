@@ -35,6 +35,12 @@
     font-weight:600;line-height:1.35;box-shadow:0 1px 3px rgba(0,0,0,.025);transition:transform .1s ease}
   a.tile:active{transform:scale(.985)}
   a.tile:hover{border-color:#d5d0c4}
+  a.tile.hot{background:#fff8f4;border-color:#e8c3b3}
+  a.tile.hot .t{color:#8c2f22}
+  a.tile.hot::after{content:"";flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:#b03a2e;margin-left:auto}
+  a.tile.hard{background:#f5f6fc;border-color:#c5cbe8}
+  a.tile.hard .t{color:#2f3f74}
+  a.tile.hard::after{content:"";flex:0 0 auto;width:7px;height:7px;border-radius:2px;background:#3d4f8c;margin-left:auto}
   .n{flex:0 0 auto;width:20px;height:20px;border-radius:6px;display:flex;align-items:center;
     justify-content:center;font-size:9.5px;font-weight:700;color:#fff}
   .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -62,6 +68,8 @@
       <span><i style="background:var(--g4)"></i>工程与数据</span>
       <span><i style="background:var(--g5)"></i>评测</span>
       <span><i style="background:var(--g6)"></i>模型</span>
+      <span><i style="background:#b03a2e;border-radius:50%"></i>重点</span>
+      <span><i style="background:#3d4f8c;border-radius:2px"></i>难点</span>
     </div>
   </div>
 
@@ -73,21 +81,21 @@
 
     <a class="tile" href="ai-app-dev.html"><div class="n" style="background:var(--g2)">05</div><div class="t">什么是 AI 应用开发</div></a>
     <a class="tile" href="function-call.html"><div class="n" style="background:var(--g2)">06</div><div class="t">Function Call</div></a>
-    <a class="tile" href="intent-routing.html"><div class="n" style="background:var(--g2)">07</div><div class="t">意图识别怎么做</div></a>
-    <a class="tile" href="context-management.html"><div class="n" style="background:var(--g2)">08</div><div class="t">上下文怎么管理</div></a>
+    <a class="tile hot" href="intent-routing.html"><div class="n" style="background:var(--g2)">07</div><div class="t">意图识别怎么做</div></a>
+    <a class="tile hot" href="context-management.html"><div class="n" style="background:var(--g2)">08</div><div class="t">上下文怎么管理</div></a>
     <a class="tile" href="three-modes.html"><div class="n" style="background:var(--g2)">09</div><div class="t">三种行为模式</div></a>
     <a class="tile" href="harness.html"><div class="n" style="background:var(--g2)">10</div><div class="t">Harness 与 Runtime</div></a>
     <a class="tile" href="session-run.html"><div class="n" style="background:var(--g2)">11</div><div class="t">Session 与 Run</div></a>
     <a class="tile" href="request-chain.html"><div class="n" style="background:var(--g2)">12</div><div class="t">一次请求链路</div></a>
-    <a class="tile" href="sse.html"><div class="n" style="background:var(--g2)">13</div><div class="t">什么是 SSE</div></a>
+    <a class="tile hard" href="sse.html"><div class="n" style="background:var(--g2)">13</div><div class="t">什么是 SSE</div></a>
     <a class="tile" href="sse-reconnect.html"><div class="n" style="background:var(--g2)">14</div><div class="t">SSE 断线续接</div></a>
-    <a class="tile" href="mcp.html"><div class="n" style="background:var(--g2)">15</div><div class="t">什么是 MCP</div></a>
+    <a class="tile hard" href="mcp.html"><div class="n" style="background:var(--g2)">15</div><div class="t">什么是 MCP</div></a>
     <a class="tile" href="a2a.html"><div class="n" style="background:var(--g2)">16</div><div class="t">A2A 是什么</div></a>
     <a class="tile" href="langgraph.html"><div class="n" style="background:var(--g2)">17</div><div class="t">LangGraph 与对照</div></a>
 
     <a class="tile" href="rag-recall.html"><div class="n" style="background:var(--g3)">18</div><div class="t">RAG 是什么与召回</div></a>
     <a class="tile" href="rerank.html"><div class="n" style="background:var(--g3)">19</div><div class="t">Rerank 有什么用</div></a>
-    <a class="tile" href="rag-accuracy.html"><div class="n" style="background:var(--g3)">20</div><div class="t">RAG 怎么保证准确</div></a>
+    <a class="tile hot" href="rag-accuracy.html"><div class="n" style="background:var(--g3)">20</div><div class="t">RAG 怎么保证准确</div></a>
     <a class="tile" href="rag-changes.html"><div class="n" style="background:var(--g3)">21</div><div class="t">RAG 变动数据</div></a>
     <a class="tile" href="no-prompt-tweak.html"><div class="n" style="background:var(--g3)">22</div><div class="t">不改提示词怎么更准</div></a>
     <a class="tile" href="context-window.html"><div class="n" style="background:var(--g3)">23</div><div class="t">扩窗与引用</div></a>

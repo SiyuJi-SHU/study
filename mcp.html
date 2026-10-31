@@ -154,39 +154,78 @@
     <article class="card">
       <header class="chead"><span class="num">1</span><h2 class="q">什么是 MCP</h2></header>
       <section class="grp first">
-        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
+        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和分层</span></div>
         <div class="anchorbox"><span class="atag">一句话</span><p>FC 管表达，MCP 管接入；<mark>一个宿主连多个服务端</mark></p></div>
         <div class="plans">
-          <div class="prow phead"><span>层</span><span>通用做法</span><span>我的项目</span></div>
-          <div class="prow"><span class="pc">层</span><span>是什么</span><span>例子</span></div>
-          <div class="prow"><span class="pc">宿主</span><span>你正在用的应用</span><span>IDE、一个 Java 项目</span></div>
-          <div class="prow"><span class="pc">客户端</span><span>宿主里连服务端的连接器，一个服务端配一个</span><span></span></div>
+          <div class="prow phead"><span>层</span><span>是什么</span><span>我的项目</span></div>
+          <div class="prow"><span class="pc">宿主</span><span>正在用的应用</span><span>我的平台、IDE</span></div>
+          <div class="prow"><span class="pc">客户端</span><span>宿主里连服务端的连接器，一个服务端一个</span><span>每个连接一个 SDK client</span></div>
           <div class="prow"><span class="pc">服务端</span><span>提供工具和数据的一方</span><span>文件系统、数据库、内部接口</span></div>
-          <div class="prow"><span class="pc">协议</span><span>规定怎么发现工具、怎么调用</span><span>JSON-RPC</span></div>
+          <div class="prow"><span class="pc">协议</span><span>发现与调用的报文</span><span>JSON-RPC 2.0，Streamable HTTP</span></div>
         </div>
         <div class="note">
-          <div class="notetitle">补充</div>
-          <p>用 USB 打比方：电脑是宿主，USB 控制器是客户端，鼠标是服务端。一台电脑能插多个设备，所以一个宿主能连多个服务端。这就是 MCP 的价值：原来每个应用都要单独适配每个工具，现在适配一次就能到处用。</p>
-        </div>
-        <div class="lanes">
+          <div class="notetitle">USB 比方，再往下一层</div>
+          <p>插上以后主机先读设备描述符，知道这个设备有什么能力，对应 tools/list 返回的 schema；之后每次操作走标准报文，对应 JSON-RPC；线本身不决定能不能用，驱动和权限才决定，对应到 MCP 就是白名单、只读、scope 仍然是宿主自己的事。</p>
+          <p>所以 MCP 只解决能不能接、怎么接，不解决该不该让它做。</p>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
+        <div class="gh"><span class="gnum">2</span><span class="gname">一次调用长什么样</span></div>
+        <div class="chain">
+          <div class="chaintitle">六步</div>
+          <div class="chips">
+            <span class="chip">配置 endpoint</span><span class="ar">→</span>
+            <span class="chip">initialize</span><span class="ar">→</span>
+            <span class="chip">tools/list</span><span class="ar">→</span>
+            <span class="chip">绑定白名单</span><span class="ar">→</span>
+            <span class="chip">tools/call</span><span class="ar">→</span>
+            <span class="chip">回填 tool response</span>
+          </div>
+        </div>
+        <div class="samptext">服务端是一个知识库检索的 MCP server，模型这一轮想查报销流程：</div>
+        <pre><code>{"jsonrpc":"2.0","id":1,"method":"tools/list"}
+{"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"search_docs",
+  "inputSchema":{"type":"object","properties":{"query":{"type":"string"}}},
+  "annotations":{"readOnlyHint":true}}],"nextCursor":null}}
+
+{"jsonrpc":"2.0","id":2,"method":"tools/call",
+ "params":{"name":"search_docs","arguments":{"query":"报销流程"}}}
+{"jsonrpc":"2.0","id":2,"result":{
+  "content":[{"type":"text","text":"报销需在 30 天内提交"}],"isError":false}}</code></pre>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>MCP 是让应用能接外部工具和数据的标准。分三层：宿主是你正在用的应用；客户端是宿主里面连服务端的连接器，一个服务端配一个；服务端是真正提供工具和数据的那一方。</p>
-          <p>它和 Function Calling 不是一回事。Function Calling 解决模型怎么表达“我要调什么、参数是什么”；MCP 解决工具怎么被发现、怎么连上、怎么调通。一个管表达，一个管接入。</p>
-          <p>我项目里只做到客户端这一侧：配好服务端地址、白名单和只读约束，通过协议拉工具列表、调工具，再把结果回填给模型。没写自己的服务端。</p>
+          <p>MCP 是 Anthropic 提的标准，用 JSON-RPC 让宿主发现和调用外部工具。分四层：宿主是应用，客户端是宿主里连服务端的连接器，服务端提供工具和数据，协议规定报文。</p>
+          <p>它和 Function Calling 不冲突。模型最后输出的还是 tool_call，MCP 只是把这个工具从哪来、怎么调通标准化了。没有 MCP，N 个应用接 M 个工具要写 N×M 套适配；有了 MCP，工具方各写一个服务端，应用方各写一个客户端，变成 <mark>N+M</mark>。</p>
+          <p>一次调用是：初始化，拉工具列表拿 schema，绑成本地工具，模型调用时把参数原样转发，结果回填。</p>
+          <p>我项目只做客户端，用 Streamable HTTP，token 从环境变量读，配置里不存凭据。拉回来的工具单连接上限 100 个，只有声明为只读的才能执行。工具名不用原名，用连接加摘要生成，schema 一变名字就变，固定版本的 Run 不会悄悄调到改过的工具契约。</p>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <div class="gh"><span class="gnum">4</span><span class="gname">我的实现</span></div>
+        <div class="why">
+          <div class="wrow"><span class="wk">传输</span><span class="wv">Streamable HTTP；地址只允许 http/https，不能带凭据，不跟随重定向</span></div>
+          <div class="wrow"><span class="wk">鉴权</span><span class="wv">配置只存环境变量名，运行时读出来加 Authorization: Bearer</span></div>
+          <div class="wrow"><span class="wk">发现</span><span class="wv">分页拉，单连接上限 100 个工具，游标重复直接报错</span></div>
+          <div class="wrow"><span class="wk">绑定</span><span class="wv">本地名 mcp_ 加 20 位摘要，endpoint、凭据变量名、工具 schema 都参与</span></div>
+          <div class="wrow"><span class="wk">执行</span><span class="wv">连接启用、工具还在目录、readOnlyHint 为 true，三条都过才调</span></div>
+          <div class="wrow"><span class="wk">超时</span><span class="wv">连接 10 秒、请求 20 秒、初始化 10 秒</span></div>
+        </div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">5</span><span class="gname">可能被追问</span></div>
         <ul class="ask ans">
-            <li>MCP 和 Function Calling 冲突吗？→ 不冲突，可以叠加，一个管接入一个管表达。</li>
-            <li>为什么需要 MCP？→ 没有它，每个应用都要单独适配每个工具。</li>
-            <li>传输方式？→ 本地进程用标准输入输出，远程用 HTTP。</li>
+            <li>MCP 和 Function Calling 冲突吗？→ 不冲突。MCP 的工具最后还是要变成模型的 tool schema，模型输出的还是 tool_call。</li>
+            <li>为什么需要 MCP？→ 适配次数从 N×M 降到 N+M；工具方维护服务端，应用方只写一次客户端。</li>
+            <li>MCP 只有工具吗？→ 规范里还有 resources 可读数据和 prompts 模板，我只用了 tools。</li>
+            <li>传输方式？→ 本地 stdio，远程 Streamable HTTP；我只做后者，老的 HTTP+SSE 没接。</li>
+            <li>你怎么保证安全？→ 地址不带凭据，token 走环境变量，只执行只读工具，再加连接启停、白名单、参数校验和调用预算。</li>
+            <li>工具重名怎么办？→ 不暴露远程原名，用连接加摘要生成本地名。</li>
+            <li>服务端改了工具怎么办？→ 重新发现；名字带 schema 摘要，旧 Run 调不到新契约。</li>
+            <li>为什么没写服务端？→ 需求是消费外部工具；写服务端是另一件事，等于把现有工具网关对外暴露。</li>
         </ul>
-        <div class="gapline ans"><span class="gtag">缺口</span><p>只做了客户端调用，没写自己的服务端。</p></div>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>只做客户端；只接 Streamable HTTP；只执行只读工具；没接 resources 和 prompts；鉴权只有 Bearer，没有 OAuth。</p></div>
       </section>
     </article>
   </div>

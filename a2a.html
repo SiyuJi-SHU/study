@@ -154,27 +154,57 @@
     <article class="card">
       <header class="chead"><span class="num">1</span><h2 class="q">A2A 是什么</h2></header>
       <section class="grp first">
-        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
-        <div class="anchorbox"><span class="atag">一句话</span><p>Agent Card → Task / Message / Artifact → 状态机 → 与 Workflow 区别</p></div>
-        <div class="lanes">
+        <div class="gh"><span class="gnum">1</span><span class="gname">一句话和五个对象</span></div>
+        <div class="anchorbox"><span class="atag">一句话</span><p>Agent Card 发现 → Task 状态机 → Message / Artifact → 与 MCP 分工</p></div>
+        <div class="plans">
+          <div class="prow phead"><span>对象</span><span>是什么</span><span>一句话</span></div>
+          <div class="prow"><span class="pc">Agent Card</span><span>能力名片，放在约定的 well-known 地址</span><span>告诉别人我会什么、地址、怎么认证</span></div>
+          <div class="prow"><span class="pc">Task</span><span>一次委派，有自己的状态机</span><span>不是调用，是张有生命周期的工单</span></div>
+          <div class="prow"><span class="pc">Message</span><span>双方说的话</span><span>parts 可以是文本、文件、结构化数据</span></div>
+          <div class="prow"><span class="pc">Artifact</span><span>产出物</span><span>任务交付的结果</span></div>
+          <div class="prow"><span class="pc">状态机</span><span>生命周期</span><span>submitted / working / input-required / completed…</span></div>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
+        <div class="gh"><span class="gnum">2</span><span class="gname">一个例子</span></div>
+        <div class="chain">
+          <div class="chaintitle">跨公司委派</div>
+          <div class="chips">
+            <span class="chip">拉 Agent Card</span><span class="ar">→</span>
+            <span class="chip">建 Task</span><span class="ar">→</span>
+            <span class="chip">working</span><span class="ar">→</span>
+            <span class="chip">input-required</span><span class="ar">→</span>
+            <span class="chip">completed + Artifact</span>
+          </div>
+        </div>
+        <div class="samptext">A 公司的报销 Agent 把单子送去 B 公司的财务 Agent：先拉 Agent Card，知道它有合规审查这个 skill 和 endpoint；再建 Task，Message 里带报销单；对方 submitted 再 working，缺发票时 input-required 反过来追问；补一条 Message 后 completed，返回 Artifact 合规结论。A 不知道 B 内部实现，也不共享数据库。</div>
+      </section>
+      <section class="grp">
+        <div class="gh"><span class="gnum">3</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>A2A 是 Agent2Agent，解决 Agent 之间互相发现、委派任务、交换结果的协议。核心是 Agent Card、Task、Message、Artifact 和状态机，面向跨进程、跨组织的协作。</p>
-          <p>它是 Agent 之间的协议，不是单进程里的多角色编排。Workflow 是一个 LLM 编排几个角色，不构成 A2A。</p>
-          <p>项目里没实现 A2A，只做过方案对照。</p>
+          <p>A2A 是 Agent2Agent，Google 牵头提的，让不同进程、不同厂商的 Agent 互相发现、委派任务、交换结果。它和 MCP 分工不同：MCP 是 Agent 调工具，A2A 是 Agent 找 Agent。</p>
+          <p>一次协作分四步：先拉 Agent Card 做发现，拿 skills、endpoint 和认证方式；再建 Task，Message 带文本、文件或结构化数据；执行时状态走 submitted、working，需要补充信息就进 input-required，回头追问；完成后返回 Artifact。Task 是有状态机的，可以长时间跑、可以中断、可以取消，更适合跨组织的长任务。</p>
+          <p>我项目没实现 A2A。我的场景是一个进程内的编排，不涉及跨 Agent 委派；要接的话，成本在身份、信任和任务幂等，不在协议本身。</p>
+        </div>
+        <div class="map">
+          <div class="maptitle">和 MCP 的分工</div>
+          <div class="mrow"><span class="mk">谁对谁</span><span class="mv">MCP：Agent 调工具和数据 · A2A：Agent 找 Agent</span></div>
+          <div class="mrow"><span class="mk">交互</span><span class="mv">MCP 一问一答 · A2A 有状态机的长任务，可追问、可取消</span></div>
+          <div class="mrow"><span class="mk">发现</span><span class="mv">MCP 用 tools/list · A2A 用 Agent Card</span></div>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">3</span><span class="gname">可能被追问</span></div>
+        <div class="gh"><span class="gnum">4</span><span class="gname">可能被追问</span></div>
         <ul class="ask ans">
-            <li>A2A 和 Workflow 区别？→ A2A 是 Agent 之间协议，跨进程；Workflow 是单进程多角色编排。</li>
-            <li>核心概念有哪些？→ Agent Card、Task、Message、Artifact、状态机。</li>
-            <li>你项目做了吗？→ 没做，只做方案对照。</li>
+            <li>A2A 和 MCP 什么区别？→ MCP 是 Agent 调工具，一问一答；A2A 是 Agent 找 Agent，有 Task 状态机，能长跑、能追问、能取消。</li>
+            <li>A2A 靠什么发现对方？→ Agent Card，放在约定的 well-known 地址，写清 skills、endpoint 和认证方式。</li>
+            <li>传输和推送？→ JSON-RPC over HTTPS；任务更新可以流式推，也可以用 webhook 回调。</li>
+            <li>为什么要有状态机？→ 跨组织任务耗时长，要能表达“等我补材料”和“已完成”，不然只能靠超时。</li>
+            <li>你项目为什么没做？→ 单进程编排，没有跨 Agent 委派；要接的成本在身份、信任和幂等。</li>
+            <li>多 Agent 一定用 A2A 吗？→ 不一定，同进程内用线程或图编排更便宜；跨组织、跨厂商才需要协议。</li>
+            <li>A2A 和 MCP 会一起用吗？→ 会，Agent 之间用 A2A 委派，各自再用 MCP 调自己的工具。</li>
         </ul>
-        <div class="gapline ans"><span class="gtag">缺口</span><p>诚实说没实现，只做方案对照，别被追问细节。</p></div>
+        <div class="gapline ans"><span class="gtag">缺口</span><p>没实现，只做方案对照；Agent Card 的认证细节和 push 回调的重试语义没深究。</p></div>
       </section>
     </article>
   </div>
