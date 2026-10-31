@@ -147,7 +147,7 @@
       <span><i class="lg-v"></i>骨架</span>
       <span><i class="lg-g"></i>锚</span>
       <span><i class="lg-b"></i>项目</span>
-      <span><i class="lg-a"></i>缺口</span>
+      <span><i class="lg-a"></i>缺口/边界</span>
     </div>
   </div>
   <div id="list">
@@ -155,27 +155,26 @@
       <header class="chead"><span class="num">1</span><h2 class="q">三种行为模式怎么做</h2></header>
       <section class="grp first">
         <div class="gh"><span class="gnum">1</span><span class="gname">一句话和流程</span></div>
-        <div class="anchorbox"><span class="atag">一句话</span><p>三种模式的差别只有一个——<mark>谁拥有“选工具”这个权力</mark></p></div>
-        <div class="lanes">
-        </div>
+        <div class="anchorbox"><span class="atag">一句话</span><p>三种模式都是<mark>单 Agent</mark>；ReAct 是标准 tool loop，Plan 是单模型三阶段 + Java executor，Workflow 是固定并行取证，不是多 Agent。</p></div>
       </section>
       <section class="grp">
         <div class="gh"><span class="gnum">2</span><span class="gname">完整回答</span></div>
         <div class="say ans">
-          <p>我一共配了三种行为模式，按“谁拥有选工具的权”来分。</p>
-          <p>第一种是 ReAct。模型每一轮都能看到工具列表，自己决定调哪个、参数是什么，返回的是原生 tool_calls。Java 收到后只做四件事：按名字找工具、校验参数、去重、执行，然后把结果作为一条 tool 消息回填。同一轮可以并行调多个工具；相同参数再调一次不会执行，会返回 repeated_request；连续两轮没有新证据就停。适合开放性问题，路径不确定，需要边查边想。</p>
-          <p>第二种是 Plan。模型先输出一个计划，最多六步，每步有 id、目标、依赖。然后逐步执行：执行前模型只做一件事——为当前这一步选一个工具和参数，输出 action 等于 execute 的 JSON；Java 解析后执行，把结果记成一条 observation。执行完模型再判断这一步算不算完成：继续、结束、重规划或要求澄清。重规划最多两次，同一步最多三次尝试。适合步骤明确、需要先想清楚再动手的任务。要注意，它没有第二个 agent，执行的就是同一段 Java 循环。</p>
-          <p>第三种是 Workflow，这条是 Java 主导。先把告警和日志固定成一份现场快照；Supervisor 调一次模型，只输出一到三个调查方向，不碰工具；每个方向开一个线程，复制一份独立上下文，预算按方向均分；线程里 Java 按写死顺序取证，先查知识库，没文档再做全文检索，最多读两篇原文；证据齐了才调模型写分析，这次不带工具。最后合并各方向证据，分析作为候选，再统一生成一次答案。适合事故诊断这种流程固定的场景。</p>
-          <p>三种模式的共同点：都过同一个工具网关，都有总超时、调用次数上限和证据预算，结果都统一回填，不会出现某种模式绕过权限。</p>
+          <p>我项目里配了三种行为模式，按任务的开放程度选。</p>
+          <p>第一种是 ReAct，就是<mark>单模型加工具循环</mark>。模型每一轮根据工具 schema 输出 tool_call，Java 校验参数、执行工具，把结果回填给同一个模型，它再决定继续查还是提交答案。我加了轮次上限、重复请求检测，连续两轮没有新进展就停。它和 LangChain 的 ReAct agent 基本是同一套。</p>
+          <p>第二种是 Plan–Execute–Replan，还是<mark>同一个模型</mark>，但先把步骤外化成计划，最多六步，每步有目标和依赖。执行时模型只为当前这一步选工具和参数，Java 执行；执行完模型判断这一步算不算完成，继续、重规划还是结束。重规划最多两次，单步最多三次。它更像 Plan-and-Execute 的简化版：主流一般把 executor 做成一个 agent，我把 <mark>executor 收敛成 Java 工具网关</mark>，少一层循环。</p>
+          <p>第三种是 Workflow，后端主导的固定流程。先把告警和日志固化成现场快照，Supervisor 模型只调一次，给出最多三个调查方向；每个方向开一个 Java 线程，按写死顺序取证：先查知识库，没有再全文检索，最多读两篇原文；取证完每个线程让模型写一段分析；最后合并证据，统一一次模型生成答案。这里 <mark>Worker 是线程，不是独立 Agent</mark>，它不选工具，也不会再派活。</p>
+          <p>所以三种都是单 Agent，差别在控制流：ReAct 是模型自己边查边想，Plan 是模型先计划再逐步执行，Workflow 是后端定流程、模型只在开头定方向和最后汇总。</p>
+          <p>三种模式都过同一个工具网关，都有超时、调用次数和证据预算，不会绕过权限。</p>
         </div>
       </section>
       <section class="grp">
-        <div class="gh"><span class="gnum">3</span><span class="gname">三种模式</span></div>
+        <div class="gh"><span class="gnum">3</span><span class="gname">主流对照</span></div>
         <div class="plans">
-          <div class="prow phead"><span>模式</span><span>谁选工具</span><span>模型怎么表达</span></div>
-          <div class="prow"><span class="pc">ReAct</span><span>模型每轮自己选工具</span><span>原生 tool_calls，带 call id</span></div>
-          <div class="prow"><span class="pc">Plan</span><span>模型先规划再逐步选工具</span><span>文本 JSON，Java 只执行不判断</span></div>
-          <div class="prow"><span class="pc">Workflow</span><span>Java 写死取证顺序</span><span>模型只出方向和分析，不碰工具</span></div>
+          <div class="prow phead"><span>模式</span><span>主流框架</span><span>我的实现</span></div>
+          <div class="prow"><span class="pc">ReAct</span><span>单 LLM + tool loop（LangChain / LangGraph ReAct agent）</span><span>同一模型；Java 顺序执行；加预算/去重/停止条件</span></div>
+          <div class="prow"><span class="pc">Plan</span><span>planner + executor agent + replanner（LangChain PlanAndExecute / LangGraph plan-and-execute）</span><span>同一 LLM 三阶段；executor 收敛成 Java 工具网关</span></div>
+          <div class="prow"><span class="pc">Workflow</span><span>supervisor + worker agents（LangGraph supervisor / CrewAI hierarchical）</span><span>Supervisor LLM + Java 线程固定取证；不是多 Agent</span></div>
         </div>
       </section>
       <section class="grp">
@@ -195,7 +194,7 @@ for(var call:output.getToolCalls()){
           <pre><code>// Supervisor：只出方向
 String raw=e.models.call(e.models.create(.1,800,.9),"workflow-supervisor",
     "...只返回JSON：{\"directions\":[...]}", e.encode(...));
-// Worker：Java 写死顺序，不经过模型
+// Worker：Java 写死取证顺序；取证完再调一次模型写分析
 call.accept("knowledge.search", ...);
 call.accept("documents.search", ...);
 call.accept("documents.read", ...);</code></pre>
@@ -205,12 +204,15 @@ call.accept("documents.read", ...);</code></pre>
         <div class="gh"><span class="gnum">5</span><span class="gname">可能被追问</span></div>
         <ul class="ask ans">
             <li>ReAct 和 Plan 最大区别是什么？→ 谁承担“步骤”这个结构。ReAct 没有显式计划，边查边想；Plan 把步骤外化成数据，可观察、可重规划。</li>
-            <li>为什么 Workflow 不让模型选工具？→ 取证路径固定，让模型选只增加不确定性；模型的价值在读懂证据和解释。</li>
-            <li>三种模式会混用吗？→ 不会，按 Agent 版本固定一种，避免同一问题跑出不同行为。</li>
-            <li>ReAct 怎么防死循环？→ 轮次上限、重复请求检测、连续两轮无新证据就停，再加总超时。</li>
+            <li>Plan 为什么不是 planner + executor agent + replanner？→ 我把 executor 收敛成 Java 工具网关，少一层 agent 循环；代价是执行阶段不能自主多步探索。</li>
+            <li>Workflow 为什么不是 LangGraph supervisor 多 Agent？→ 取证路径固定，Worker 不需要自主决策；多 Agent 会增加状态、权限、通信和调试成本。</li>
+            <li>ReAct 同一轮会并行调工具吗？→ 不会；流式 parallelToolCalls=false，Java 也是 for 循环顺序执行。</li>
+            <li>三种模式会混用吗？→ 不会，按 Agent 版本固定一种。</li>
+            <li>ReAct 怎么防死循环？→ 轮次上限、重复请求检测、连续两轮无进展、总超时。</li>
             <li>Plan 什么时候重规划？→ 观察后发现目标没完成、原计划又走不通，最多两次。</li>
         </ul>
         <div class="gapline ans"><span class="gtag">缺口</span><p>三种模式没做同题 A/B 对比；Plan 的重规划成功率没统计；Workflow 方向数硬编码上限 3。</p></div>
+        <div class="gapline ans"><span class="gtag">边界</span><p>没有 A2A/独立 Agent 通信；Workflow 是固定取证流程，不是多 Agent。A2A 是跨 Agent/跨组织才需要的协议，不在当前场景的代价里。</p></div>
       </section>
     </article>
   </div>
