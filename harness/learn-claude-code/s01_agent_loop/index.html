@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s01 Agent Loop · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../preface.html">课程</a> / s01</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="../s01_agent_loop/index.html" class="active"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s01: Agent Loop — 一个循环就够了</h1>
+<p><code>s01</code> → <a href="../s02_tool_use/index.html">s02</a> → s03 → s04 → ... → s16 → s17</p>
+<blockquote>
+<p><em>"One loop &amp; Bash is all you need"</em> — 一个工具 + 一个循环 = 一个 Agent。</p>
+<p><strong>Harness 层</strong>: 循环 — 模型与真实世界的第一道连接。</p>
+</blockquote>
+<hr>
+<h2>问题</h2>
+<p>你提出了一个问题给大模型：“帮我读取下我的目录下有哪些文件，并且执行XXX.py”。</p>
+<p>模型能输出一条 bash 命令，但输出完了就停了，它不会自己跑，也不会看到结果后继续推理。</p>
+<p>你可以手动跑一遍，把输出粘贴回对话框，让它接着干。下一个命令出来，你再跑一遍、再贴回去。</p>
+<p>每一个来回，你都在做中间层。而把它自动化，就是这一章要做的事。</p>
+<hr>
+<h2>解决方案</h2>
+<p><img alt="Agent Loop" src="images/agent-loop.svg"></p>
+<p>一个 <code>while True</code> 循环，模型调用工具就继续，不调用就停。循环直接检查响应里的内容块：</p>
+<table>
+<thead>
+<tr>
+<th>信号</th>
+<th>含义</th>
+<th>循环动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>包含 <code>tool_use</code> block</td>
+<td>模型要求调用工具</td>
+<td>执行 → 结果喂回去 → 继续</td>
+</tr>
+<tr>
+<td>不包含 <code>tool_use</code> block</td>
+<td>模型没有调用工具</td>
+<td>退出循环</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>工作原理</h2>
+<p>将这个过程翻译成代码。分步来看：</p>
+<p><strong>第 1 步</strong>：把用户的问题作为第一条消息。</p>
+<pre><code class="language-python">messages = [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: query}]
+</code></pre>
+<p><strong>第 2 步</strong>：将消息和工具定义一起发给 LLM。</p>
+<pre><code class="language-python">response = client.messages.create(
+    model=MODEL, system=SYSTEM, messages=messages,
+    tools=TOOLS, max_tokens=8000,
+)
+</code></pre>
+<p><strong>第 3 步</strong>：追加模型回答，检查它是否调了工具。没调 → 结束。</p>
+<pre><code class="language-python">messages.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: response.content})
+tool_calls = [
+    block for block in response.content if block.type == &quot;tool_use&quot;
+]
+if not tool_calls:
+    return
+</code></pre>
+<p>只有实际存在的 <code>tool_use</code> block 才会进入执行阶段，因此不会追加空的工具结果消息。</p>
+<p><strong>第 4 步</strong>：执行模型要求的工具，收集结果。</p>
+<pre><code class="language-python">results = []
+for block in tool_calls:
+    output = run_bash(block.input[&quot;command&quot;])
+    results.append({
+        &quot;type&quot;: &quot;tool_result&quot;,
+        &quot;tool_use_id&quot;: block.id,
+        &quot;content&quot;: output,
+    })
+</code></pre>
+<p><strong>第 5 步</strong>：把工具结果作为新消息追加，回到第 2 步。</p>
+<pre><code class="language-python">messages.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: results})
+</code></pre>
+<p>组装为一个完整函数：</p>
+<pre><code class="language-python">def agent_loop(messages):
+    while True:
+        response = client.messages.create(
+            model=MODEL, system=SYSTEM, messages=messages,
+            tools=TOOLS, max_tokens=8000,
+        )
+        messages.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: response.content})
+
+        tool_calls = [
+            block for block in response.content if block.type == &quot;tool_use&quot;
+        ]
+        if not tool_calls:
+            return
+
+        results = []
+        for block in tool_calls:
+            output = run_bash(block.input[&quot;command&quot;])
+            results.append({
+                &quot;type&quot;: &quot;tool_result&quot;,
+                &quot;tool_use_id&quot;: block.id,
+                &quot;content&quot;: output,
+            })
+        messages.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: results})
+</code></pre>
+<p>三十多行，这就是最小可运行的 agent harness 内核。它为模型提供持续行动的最小运行框架：模型负责决策（要不要调工具、调哪个），harness 负责执行（调用工具，把结果作为新消息追加）。后面 16 个章节都在这个循环上叠加机制，循环本身始终不变。</p>
+<hr>
+<h2>试一下</h2>
+<blockquote>
+<p><strong>安全提示</strong>：代码会执行模型生成的 shell 命令。建议在一个临时测试目录中运行，避免影响你的项目文件。s03 会加入权限控制。</p>
+</blockquote>
+<p><strong>准备</strong>（首次运行）：</p>
+<pre><code class="language-sh">pip install -r requirements.txt
+cp .env.example .env
+# 编辑 .env，填入 ANTHROPIC_API_KEY 和 MODEL_ID
+</code></pre>
+<p><strong>运行</strong>：</p>
+<pre><code class="language-sh">python s01_agent_loop/code.py
+</code></pre>
+<p>试试这些 prompt：</p>
+<ol>
+<li><code>Create a file called hello.py that prints "Hello, World!"</code></li>
+<li><code>List all Python files in this directory</code></li>
+<li><code>What is the current git branch?</code></li>
+</ol>
+<p>观察重点：模型什么时候调用工具（循环继续），什么时候不调用（循环结束）？</p>
+<hr>
+<h2>接下来</h2>
+<p>现在模型手里只有 bash 一个工具，读文件要 <code>cat</code>，写文件要 <code>echo ... &gt;</code>，找个文件要 <code>find</code>，又丑又容易出错。</p>
+<p>s02 Tool Use → 给它 5 个真正的工具，会发生什么？模型会不会一次调用多个工具？几个工具同时跑会不会互相踩？</p>
+    <div class="pager"><a class="next" href="../s02_tool_use/index.html">s02 Tool Use →</a></div>
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s04 Hooks · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../preface.html">课程</a> / s04</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="../s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html" class="active"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s04: Hooks — 挂在循环上，不写进循环里</h1>
+<p>s01 → s02 → s03 → <code>s04</code> → <a href="../s05_todo_write/index.html">s05</a> → s06 → ... → s16 → s17</p>
+<blockquote>
+<p><em>"挂在循环上, 不写进循环里"</em> — hook 在工具执行前后注入扩展逻辑。</p>
+<p><strong>Harness 层</strong>: hook — 扩展点不侵入循环。</p>
+</blockquote>
+<hr>
+<h2>问题</h2>
+<p>s03 的 Agent 有权限检查了。但每次加一个新检查，比如"记录每次 bash 调用"、"操作后自动 git add"，都要修改 <code>agent_loop</code> 函数。</p>
+<p>循环很快就变成了这样：</p>
+<pre><code class="language-python">def agent_loop(messages):
+    while True:
+        # ... LLM call ...
+        for block in response.content:
+            if block.type != &quot;tool_use&quot;:
+                continue
+            log_to_file(block)          # 加一行
+            check_permission(block)     # 加一行
+            notify_slack(block)         # 又加一行
+            output = execute(block)
+            auto_git_add(block)         # 再加一行
+            # ... 很快循环就认不出来了
+</code></pre>
+<p>你想扩展的是 Agent 的行为，但你改的却是循环本身。循环应该是一个稳定的核心，扩展应该挂在外面。</p>
+<hr>
+<h2>解决方案</h2>
+<p><img alt="Hooks Overview" src="images/hooks-overview.svg"></p>
+<p>s03 的循环和权限逻辑完全保留。唯一的变动是把 <code>check_permission()</code> 从循环体内移到了 hook 上，循环不再直接调用任何检查函数，改为 <code>trigger_hooks("PreToolUse", block)</code>，由注册表决定跑什么。</p>
+<p>四个事件，覆盖一个完整的 agent cycle：</p>
+<table>
+<thead>
+<tr>
+<th>事件</th>
+<th>触发时机</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UserPromptSubmit</td>
+<td>用户输入提交后、进入 LLM 前</td>
+<td>输入验证、注入上下文</td>
+</tr>
+<tr>
+<td>PreToolUse</td>
+<td>工具执行前</td>
+<td>权限检查、日志记录</td>
+</tr>
+<tr>
+<td>PostToolUse</td>
+<td>工具执行后</td>
+<td>副作用（自动 git add 等）、输出检查</td>
+</tr>
+<tr>
+<td>Stop</td>
+<td>循环即将退出时</td>
+<td>收尾清理、决定是否继续循环</td>
+</tr>
+</tbody>
+</table>
+<p>扩展通过 <code>register_hook()</code> 添加，循环只调用 <code>trigger_hooks()</code>。</p>
+<hr>
+<h2>工作原理</h2>
+<p><strong>hook 注册表</strong>：一个字典，事件名映射到回调列表。</p>
+<pre><code class="language-python">HOOKS = {
+    &quot;UserPromptSubmit&quot;: [],
+    &quot;PreToolUse&quot;: [],
+    &quot;PostToolUse&quot;: [],
+    &quot;Stop&quot;: [],
+}
+
+def register_hook(event: str, callback):
+    HOOKS[event].append(callback)
+
+def trigger_hooks(event: str, *args):
+    for callback in HOOKS[event]:
+        result = callback(*args)
+        if result is not None:   # 返回值 ≠ None → hook 说&quot;停&quot;
+            return result
+    return None
+</code></pre>
+<p><code>PreToolUse</code> 返回非 <code>None</code> 时，本次工具执行被阻止；<code>Stop</code> 返回非 <code>None</code> 时，循环继续。<code>UserPromptSubmit</code> 和 <code>PostToolUse</code> 的返回值不参与控制流。</p>
+<p><strong>UserPromptSubmit</strong> 在用户输入提交后、进入 LLM 前触发。以下 hook 记录当前工作目录：</p>
+<pre><code class="language-python">def context_inject_hook(query: str) -&gt; str | None:
+    &quot;&quot;&quot;Inject current working directory info into every prompt.&quot;&quot;&quot;
+    print(f&quot;\033[90m[HOOK] UserPromptSubmit: working in {WORKDIR}\033[0m&quot;)
+    return None   # return None = 不修改提示词，直接放行
+
+register_hook(&quot;UserPromptSubmit&quot;, context_inject_hook)
+</code></pre>
+<p>在主循环中，用户输入后立即触发：</p>
+<pre><code class="language-python">query = input(&quot;s04 &gt;&gt; &quot;)
+trigger_hooks(&quot;UserPromptSubmit&quot;, query)   # ← 进入 LLM 之前
+history.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: query})
+agent_loop(history)
+</code></pre>
+<p><strong>PreToolUse / PostToolUse</strong>，工具执行前后的 hook。s03 的权限检查逻辑现在包装成 PreToolUse hook，再加一个日志 hook 和一个大输出提醒：</p>
+<pre><code class="language-python"># PreToolUse: 权限检查（s03 的逻辑，从循环移到 hook）
+def permission_hook(block):
+    if block.name == &quot;bash&quot;:
+        for pattern in DENY_LIST:
+            if pattern in block.input.get(&quot;command&quot;, &quot;&quot;):
+                return &quot;Permission denied by deny list&quot;
+    if block.name in (&quot;read_file&quot;, &quot;write_file&quot;, &quot;edit_file&quot;):
+        path = block.input.get(&quot;path&quot;, &quot;&quot;)
+        if not (WORKDIR / path).resolve().is_relative_to(WORKDIR):
+            choice = input(&quot;   Allow? [y/N] &quot;).strip().lower()
+            if choice not in (&quot;y&quot;, &quot;yes&quot;):
+                return &quot;Permission denied by user&quot;
+    return None
+
+# PreToolUse: 日志
+def log_hook(block):
+    print(f&quot;[HOOK] {block.name}(...)&quot;)
+
+# PostToolUse: 大文件提醒
+def large_output_hook(block, output):
+    if len(str(output)) &gt; 100000:
+        print(f&quot;[HOOK] ⚠ Large output from {block.name}&quot;)
+
+register_hook(&quot;PreToolUse&quot;, permission_hook)
+register_hook(&quot;PreToolUse&quot;, log_hook)
+register_hook(&quot;PostToolUse&quot;, large_output_hook)
+</code></pre>
+<p><strong>Stop</strong> 在循环即将退出时触发。以下 hook 打印收尾统计：</p>
+<pre><code class="language-python">def summary_hook(messages: list) -&gt; str | None:
+    &quot;&quot;&quot;Print a summary when the loop is about to stop.&quot;&quot;&quot;
+    tool_count = sum(1 for m in messages
+                     for b in (m.get(&quot;content&quot;) if isinstance(m.get(&quot;content&quot;), list) else [])
+                     if isinstance(b, dict) and b.get(&quot;type&quot;) == &quot;tool_result&quot;)
+    print(f&quot;\033[90m[HOOK] Stop: session used {tool_count} tool calls\033[0m&quot;)
+    return None   # return None = 允许终止, return string = 强制继续
+
+register_hook(&quot;Stop&quot;, summary_hook)
+</code></pre>
+<p>在 agent_loop 中，退出前触发：</p>
+<pre><code class="language-python">tool_calls = [
+    block for block in response.content if block.type == &quot;tool_use&quot;
+]
+if not tool_calls:
+    force = trigger_hooks(&quot;Stop&quot;, messages)   # ← 退出之前
+    if force:
+        # hook 返回消息 → 注入消息并继续执行
+        messages.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: force})
+        continue
+    return
+</code></pre>
+<p><strong>循环里只改了一处</strong>：s03 直接调用 <code>check_permission(block)</code>，s04 改为 <code>trigger_hooks("PreToolUse", block)</code>：</p>
+<pre><code class="language-python">for block in tool_calls:
+    # s03: if not check_permission(block): ...
+    # s04: hook 替代硬编码
+    blocked = trigger_hooks(&quot;PreToolUse&quot;, block)
+    if blocked:
+        results.append({&quot;type&quot;: &quot;tool_result&quot;, &quot;tool_use_id&quot;: block.id,
+                        &quot;content&quot;: str(blocked)})
+        continue
+
+    handler = TOOL_HANDLERS.get(block.name)
+    output = handler(**block.input) if handler else f&quot;Unknown: {block.name}&quot;
+
+    trigger_hooks(&quot;PostToolUse&quot;, block, output)
+
+    results.append({&quot;type&quot;: &quot;tool_result&quot;, &quot;tool_use_id&quot;: block.id,
+                    &quot;content&quot;: output})
+</code></pre>
+<p>四个 hook 覆盖了 agent cycle 的关键节点：输入→执行前→执行后→退出。循环只负责调用 trigger_hooks()，具体逻辑全在 hook 回调里。</p>
+<hr>
+<h2>相对 s03 的变更</h2>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>之前 (s03)</th>
+<th>之后 (s04)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>扩展方式</td>
+<td>check_permission() 硬编码在循环里</td>
+<td>HOOKS 注册表 + trigger_hooks()</td>
+</tr>
+<tr>
+<td>新函数</td>
+<td>—</td>
+<td>register_hook, trigger_hooks</td>
+</tr>
+<tr>
+<td>hook 回调</td>
+<td>—</td>
+<td>context_inject_hook, permission_hook, log_hook, large_output_hook, summary_hook</td>
+</tr>
+<tr>
+<td>循环</td>
+<td>直接调用 check_permission()</td>
+<td>调用 trigger_hooks("PreToolUse", ...)</td>
+</tr>
+<tr>
+<td>退出控制</td>
+<td>无</td>
+<td>trigger_hooks("Stop", ...) 可阻止退出</td>
+</tr>
+<tr>
+<td>输入拦截</td>
+<td>无</td>
+<td>trigger_hooks("UserPromptSubmit", ...) 可注入上下文</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>试一下</h2>
+<pre><code class="language-sh">cd learn-claude-code
+python s04_hooks/code.py
+</code></pre>
+<p>试试这些 prompt：</p>
+<ol>
+<li><code>Read the file README.md</code>（应该直接通过，观察 hook 日志）</li>
+<li><code>Create a file called test.txt</code>（通过后观察 PostToolUse 是否触发）</li>
+<li><code>Delete all temporary files in /tmp</code>（bash + rm 触发权限 hook）</li>
+</ol>
+<p>观察重点：每次工具执行前，是否出现了 <code>[HOOK]</code> 日志？权限被拒时，是 hook 拦截的还是循环里硬编码的？</p>
+<hr>
+<h2>接下来</h2>
+<p>Agent 现在能安全执行操作了。但它有没有停下来想过"我应该先做什么，再做什么"？给它一个复杂任务，它是一上来就动手，还是先列个计划？</p>
+<p>s05 TodoWrite → 给 Agent 一个计划工具。先列清单，再做。</p>
+    <div class="pager"><a class="prev" href="../s03_permission/index.html">← s03 Permission</a><a class="next" href="../s05_todo_write/index.html">s05 TodoWrite →</a></div>
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

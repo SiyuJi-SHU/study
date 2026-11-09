@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s03 Permission · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../preface.html">课程</a> / s03</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="../s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html" class="active"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s03: Permission — 执行前做权限判断</h1>
+<p>s01 → s02 → <code>s03</code> → <a href="../s04_hooks/index.html">s04</a> → s05 → ... → s16 → s17</p>
+<blockquote>
+<p><em>"工具执行前先做权限判断"</em> — 权限管线决定哪些操作需要审批。</p>
+<p><strong>Harness 层</strong>: 权限 — 在工具执行前加一道门。</p>
+</blockquote>
+<hr>
+<h2>问题</h2>
+<p>s02 的 Agent 有 5 个工具。file tools 受 <code>safe_path</code> 保护，但 bash 不受限制。让它"清理一下项目"，可能执行 <code>rm -rf /</code>。</p>
+<p>安全边界由代码负责，判断发生在工具执行之前。</p>
+<hr>
+<h2>解决方案</h2>
+<p><img alt="Permission Overview" src="images/permission-overview.svg"></p>
+<p>s02 的循环完全保留。唯一的变动是在工具执行前插入 <code>check_permission()</code>。每个工具调用依次经过三道闸门：硬拒绝优先，软询问次之，都没命中就放行。</p>
+<p>三道闸门对应三种决策：</p>
+<table>
+<thead>
+<tr>
+<th>闸门</th>
+<th>作用</th>
+<th>命中后</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. 拒绝列表</td>
+<td>永远禁止的操作（<code>rm -rf /</code>、<code>sudo</code>）</td>
+<td>直接拒绝，不执行</td>
+</tr>
+<tr>
+<td>2. 规则匹配</td>
+<td>取决于上下文的操作（读/写工作区外、<code>rm</code> 文件）</td>
+<td>交给闸门 3</td>
+</tr>
+<tr>
+<td>3. 用户审批</td>
+<td>闸门 2 命中后，暂停等用户确认</td>
+<td>用户决定允许或拒绝</td>
+</tr>
+</tbody>
+</table>
+<p>三道都没命中 → 直接执行。大部分日常操作走这条路。</p>
+<hr>
+<h2>工作原理</h2>
+<p><img alt="Permission Pipeline" src="images/permission-pipeline.svg"></p>
+<p><strong>闸门 1</strong>：一张硬拒绝表，先查，命中就返回阻止信息。这张表使用简单字符串匹配来说明权限闸门的位置，不能视为完整的安全边界。</p>
+<pre><code class="language-python">DENY_LIST = [
+    &quot;rm -rf /&quot;, &quot;sudo&quot;, &quot;shutdown&quot;, &quot;reboot&quot;,
+    &quot;mkfs&quot;, &quot;dd if=&quot;, &quot;&gt; /dev/sda&quot;,
+]
+
+def check_deny_list(command: str) -&gt; str | None:
+    for pattern in DENY_LIST:
+        if pattern in command:
+            return f&quot;Blocked: '{pattern}' is on the deny list&quot;
+    return None
+</code></pre>
+<p><strong>闸门 2</strong>负责规则匹配，用来描述"什么时候需要问用户"。每条规则指定工具和检查条件。</p>
+<pre><code class="language-python">import re
+
+DESTRUCTIVE_COMMAND_WORD = re.compile(
+    r&quot;(?i)(?:^|[;&amp;|()\n])\s*(?:rm|del)(?=\s|$|[;&amp;|()])&quot;
+)
+
+def contains_destructive_command(command: str) -&gt; bool:
+    return bool(DESTRUCTIVE_COMMAND_WORD.search(command))
+
+PERMISSION_RULES = [
+    {
+        &quot;tools&quot;: [&quot;read_file&quot;, &quot;write_file&quot;, &quot;edit_file&quot;],
+        &quot;check&quot;: lambda args: not (WORKDIR / args.get(&quot;path&quot;, &quot;&quot;)).resolve().is_relative_to(WORKDIR),
+        &quot;message&quot;: &quot;Access outside workspace&quot;,
+    },
+    {
+        &quot;tools&quot;: [&quot;bash&quot;],
+        &quot;check&quot;: lambda args: contains_destructive_command(args.get(&quot;command&quot;, &quot;&quot;)) or any(
+            kw in args.get(&quot;command&quot;, &quot;&quot;) for kw in [&quot;rm &quot;, &quot;&gt; /etc/&quot;, &quot;chmod 777&quot;]
+        ),
+        &quot;message&quot;: &quot;Potentially destructive command&quot;,
+    },
+]
+
+def check_rules(tool_name: str, args: dict) -&gt; str | None:
+    for rule in PERMISSION_RULES:
+        if tool_name in rule[&quot;tools&quot;] and rule[&quot;check&quot;](args):
+            return rule[&quot;message&quot;]
+    return None
+</code></pre>
+<p><strong>闸门 3</strong>：规则命中后，暂停等用户输入。</p>
+<pre><code class="language-python">def ask_user(tool_name: str, args: dict, reason: str) -&gt; str:
+    print(f&quot;\n⚠  {reason}&quot;)
+    print(f&quot;   Tool: {tool_name}({args})&quot;)
+    choice = input(&quot;   Allow? [y/N] &quot;).strip().lower()
+    return &quot;allow&quot; if choice in (&quot;y&quot;, &quot;yes&quot;) else &quot;deny&quot;
+</code></pre>
+<p><strong>三道闸门串在一起</strong>，插在工具执行之前：</p>
+<pre><code class="language-python">def check_permission(block) -&gt; bool:
+    # 闸门 1: 硬拒绝
+    if block.name == &quot;bash&quot;:
+        reason = check_deny_list(block.input.get(&quot;command&quot;, &quot;&quot;))
+        if reason:
+            print(f&quot;\n⛔ {reason}&quot;)
+            return False
+
+    # 闸门 2 + 3: 规则匹配 → 用户审批
+    reason = check_rules(block.name, block.input)
+    if reason:
+        decision = ask_user(block.name, block.input, reason)
+        if decision == &quot;deny&quot;:
+            return False
+
+    return True
+
+# 在 agent_loop 中——s02 的循环只加了一行：
+for block in tool_calls:
+    if not check_permission(block):           # ← 新增
+        results.append({... &quot;content&quot;: &quot;Permission denied.&quot;})
+        continue
+    output = TOOL_HANDLERS[block.name](**block.input)  # s02 原有
+    results.append(...)
+</code></pre>
+<hr>
+<h2>相对 s02 的变更</h2>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>之前 (s02)</th>
+<th>之后 (s03)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>安全模型</td>
+<td>无（信任模型）</td>
+<td>三道闸门权限管线</td>
+</tr>
+<tr>
+<td>新函数</td>
+<td>—</td>
+<td>check_deny_list, check_rules, ask_user, check_permission</td>
+</tr>
+<tr>
+<td>循环</td>
+<td>直接执行所有工具</td>
+<td>执行前插入 check_permission()</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>试一下</h2>
+<pre><code class="language-sh">cd learn-claude-code
+python s03_permission/code.py
+</code></pre>
+<p>试试这些 prompt：</p>
+<ol>
+<li><code>Create a file called test.txt in the current directory</code>（应该直接通过）</li>
+<li><code>Delete the file test.txt</code>（bash + rm 会触发闸门 2）</li>
+<li><code>What files are in the current directory?</code>（只读，全部通过）</li>
+<li><code>Try to write a file to /etc/something</code>（写工作区外，触发闸门 2）</li>
+<li>在 Windows 上，<code>del test.txt</code> 和 <code>DEL test.txt</code> 会触发闸门 2，而 <code>model</code>、<code>delimiter</code> 和 <code>echo del test.txt</code> 不会。</li>
+</ol>
+<p>观察重点：哪些操作直接通过？哪些需要你确认？哪些被直接拒绝？</p>
+<hr>
+<h2>接下来</h2>
+<p>当前权限检查每次都在循环里硬编码 <code>check_permission()</code>。如果我想在每次工具执行前后加日志？如果想在某些操作后自动触发 git commit？这些扩展逻辑散落在 loop 里，循环很快就会膨胀。</p>
+<p>s04 Hooks → 给循环加钩子，扩展逻辑挂在钩子上，循环保持干净。</p>
+    <div class="pager"><a class="prev" href="../s02_tool_use/index.html">← s02 Tool Use</a><a class="next" href="../s04_hooks/index.html">s04 Hooks →</a></div>
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

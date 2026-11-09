@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s09 Memory · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../preface.html">课程</a> / s09</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="../s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html" class="active"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s09: Memory — 让重要信息跨会话保留下来</h1>
+<p>s01 → ... → s07 → s08 → <code>s09</code> → <a href="../s10_task_system/index.html">s10</a> → s11 → ... → s16 → s17</p>
+<blockquote>
+<p><em>"把以后还会用到的信息留下来。"</em> 文件存储 + 索引 + 相关性选择 + 按需召回。</p>
+<p><strong>Harness 层</strong>：Memory 在会话之外保存可复用知识，并在相关任务中取回。</p>
+</blockquote>
+<hr>
+<h2>问题</h2>
+<p>Agent 开始新会话时，<code>messages</code> 里没有上一次的对话。用户之前说过的编码偏好、项目背景和排查线索，下次任务还可能用到。没有持久存储，这些信息只能由用户重新说一遍。</p>
+<p>把完整 transcript 留下来适合归档，却不适合每次都发给模型。对话会越来越长，当前任务需要的信息很难定位，旧事实也可能已经过期。Memory 要解决的是两个问题：哪些信息值得跨会话保存，以及当前任务应该取回哪几条。</p>
+<p><img alt="Memory Overview" src="images/memory-overview.svg"></p>
+<hr>
+<h2>全部写进 system prompt，为什么不合适</h2>
+<p>最直接的做法，是把用户偏好和项目事实写进一个固定文件，启动时全部放进 system prompt。这样确实能够记住信息，但每次调用 LLM 都要重新发送全部内容。记忆越多，与当前任务无关的内容就越多，输入 token 和上下文窗口也会被持续占用。</p>
+<p>s07 已经展示过一种更合适的读取方式：保留简短索引，只在需要时加载正文。Skill 由人编写并保持只读；Memory 则允许 Agent 从对话中提取内容，并在后续任务中再次使用。</p>
+<p>因此，本章需要处理四件事：存储、召回、提取和整理。</p>
+<p><img alt="Memory Subsystems" src="images/memory-subsystems.svg"></p>
+<hr>
+<h2>存储：一个记忆一个文件</h2>
+<p>每条记忆是 <code>.memory/</code> 下的一个 Markdown 文件，YAML frontmatter 记录 <code>name</code>、<code>description</code> 和 <code>type</code>：</p>
+<pre><code class="language-markdown">---
+name: user-preference-tabs
+description: User prefers tabs for indentation
+type: user
+---
+
+User prefers using tabs, not spaces, for indentation.
+</code></pre>
+<p><code>type</code> 有四类：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>保存什么</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>user</td>
+<td>用户的长期偏好</td>
+<td>“使用 tab 缩进”</td>
+</tr>
+<tr>
+<td>feedback</td>
+<td>以后仍适用的工作反馈</td>
+<td>“不要 mock 数据库”</td>
+</tr>
+<tr>
+<td>project</td>
+<td>稳定的项目事实</td>
+<td>“认证重写由合规要求驱动”</td>
+</tr>
+<tr>
+<td>reference</td>
+<td>外部资料或查找线索</td>
+<td>“流水线问题记录在 Linear INGEST”</td>
+</tr>
+</tbody>
+</table>
+<p><code>MEMORY.md</code> 是索引，每行对应一个记忆文件。写入完成后，<code>rebuild_memory_index()</code> 根据文件重新生成索引：</p>
+<pre><code class="language-python">def write_memory_file(name, mem_type, description, body):
+    path = MEMORY_DIR / f&quot;{memory_slug(name)}.md&quot;
+    path.write_text(
+        memory_document(name, mem_type, description, body), encoding=&quot;utf-8&quot;
+    )
+    rebuild_memory_index()
+    return path
+</code></pre>
+<p>索引用于选择相关记忆，正文仍然保存在各自的文件中。</p>
+<hr>
+<h2>召回：先选择，再加载正文</h2>
+<p>每次用户发起请求时，<code>select_relevant_memories()</code> 读取最近的用户消息和记忆目录，让一次轻量模型调用选择最多五条相关记录：</p>
+<pre><code class="language-python">prompt = (
+    &quot;Select memory records that are relevant to the current user request. &quot;
+    &quot;Return only a JSON array of catalog indices, such as [0, 2]. &quot;
+    &quot;Return [] when none are relevant.&quot;
+)
+</code></pre>
+<p>如果模型调用或 JSON 解析失败，代码会退回关键词匹配。选择完成后，<code>load_memories()</code> 才读取对应文件，并限制召回正文的总长度。</p>
+<pre><code class="language-python">relevant_memories = load_memories(messages)
+system = build_system(relevant_memories)
+</code></pre>
+<p><code>build_system()</code> 会明确说明：召回内容只是背景知识，不是新的用户命令；如果记忆与当前请求冲突，以当前请求为准。这样既能使用旧信息，也不会让旧记忆替用户发号施令。</p>
+<hr>
+<h2>提取：回合结束后保存可复用信息</h2>
+<p>用户不一定会明确说“请记住”。<code>extract_memories()</code> 在 Agent 完成本轮回答后检查当前对话，只提取以后仍可能有用的信息：</p>
+<pre><code class="language-python">tool_calls = [
+    block for block in response.content if block.type == &quot;tool_use&quot;
+]
+if not tool_calls:
+    force = trigger_hooks(&quot;Stop&quot;, messages)
+    if force:
+        messages.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: force})
+        continue
+    if extract_memories(messages):
+        consolidate_memories()
+    return
+</code></pre>
+<p>模型返回的内容只是候选，不会直接写盘。候选必须带有 <code>scope</code>：只有 <code>persistent</code> 才表示它应当跨会话保留；<code>current_task</code> 表示本次任务的命令、临时路径和临时限制。</p>
+<p><code>should_store_memory()</code> 负责最后的检查。字段不完整、带有“本次会话”或“当前任务”等临时含义、或者与已有记忆重复的候选都会被拒绝。比如“这次不要创建文件”只约束当前任务，不应该在下次会话中继续生效。</p>
+<hr>
+<h2>整理：合并重复和过期内容</h2>
+<p>记忆文件积累到一定数量后，内容可能重复、矛盾或过期。教学实现达到 10 条时调用 <code>consolidate_memories()</code>，让模型生成一份整理后的记录列表。</p>
+<p>整理过程先解析并校验新列表，再替换旧文件。替换前会保存快照；删除或写入失败时，代码恢复原文件并重建索引：</p>
+<pre><code class="language-python">snapshot = {
+    path.name: path.read_text(encoding=&quot;utf-8&quot;)
+    for path in MEMORY_DIR.glob(&quot;*.md&quot;)
+    if path.name != MEMORY_INDEX.name
+}
+
+try:
+    for path in MEMORY_DIR.glob(&quot;*.md&quot;):
+        if path.name != MEMORY_INDEX.name:
+            path.unlink()
+    for record in consolidated:
+        path = MEMORY_DIR / f&quot;{memory_slug(record['name'])}.md&quot;
+        path.write_text(memory_document(
+            record[&quot;name&quot;], record[&quot;type&quot;],
+            record[&quot;description&quot;], record[&quot;body&quot;],
+        ), encoding=&quot;utf-8&quot;)
+    rebuild_memory_index()
+except Exception:
+    for path in MEMORY_DIR.glob(&quot;*.md&quot;):
+        if path.name != MEMORY_INDEX.name:
+            path.unlink()
+    for filename, content in snapshot.items():
+        (MEMORY_DIR / filename).write_text(content, encoding=&quot;utf-8&quot;)
+    rebuild_memory_index()
+    raise
+</code></pre>
+<p>课程代码把整理触发条件简化为数量阈值。真实应用还需要根据数据规模和并发方式，决定何时整理以及如何避免多个进程同时改写同一份存储。</p>
+<hr>
+<h2>本节代码</h2>
+<table>
+<thead>
+<tr>
+<th>组成</th>
+<th>本节实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent Loop</td>
+<td>保留消息、工具调用、工具结果和 hooks 触发点</td>
+</tr>
+<tr>
+<td>基础工具</td>
+<td><code>bash</code>、<code>read_file</code>、<code>write_file</code>、<code>edit_file</code>、<code>glob</code></td>
+</tr>
+<tr>
+<td>存储</td>
+<td><code>.memory/MEMORY.md</code> 索引 + <code>.memory/*.md</code> 文件</td>
+</tr>
+<tr>
+<td>召回</td>
+<td>目录选择 + 关键词降级 + 正文长度上限</td>
+</tr>
+<tr>
+<td>写入</td>
+<td>回合结束后提取 + 持久性检查 + 重复过滤</td>
+</tr>
+<tr>
+<td>整理</td>
+<td>达到阈值后合并，失败时恢复原文件</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>与 s08 的边界：</strong> s08 管理当前会话的上下文预算，s09 管理会话之外的可复用知识。Memory 是选择性存储，不是 transcript 的无损备份，也不会取代上下文压缩。</p>
+</blockquote>
+<hr>
+<h2>试一下</h2>
+<pre><code class="language-sh">cd learn-claude-code
+python s09_memory/code.py
+</code></pre>
+<ol>
+<li>输入 <code>I prefer using tabs for indentation. Remember that.</code>，结束后检查 <code>.memory/</code> 是否新增记忆文件，<code>MEMORY.md</code> 是否出现对应索引；</li>
+<li>输入 <code>q</code> 退出并重新运行程序，再问 <code>What indentation style do I prefer?</code>，确认新会话能够召回这条偏好；</li>
+<li>再保存一条与代码格式无关的偏好，然后询问缩进问题，观察当前请求只加载相关记忆；</li>
+<li>输入 <code>Do not create files in this session.</code>，确认这条临时要求不会成为下一次会话的持久规则。</li>
+</ol>
+<p>模型的具体措辞和提取数量可能变化，判断重点是 <code>.memory/</code> 中保存了什么，以及新会话是否只取回相关内容。</p>
+<hr>
+<h2>接下来</h2>
+<p>Memory 解决了跨会话保留信息的问题，但复杂任务还需要记录每一步的状态和依赖关系。仅靠对话中的 TODO，程序退出后就无法继续追踪进度。</p>
+<p>s10 Task System → 把任务、状态和依赖关系保存到磁盘。</p>
+    <div class="pager"><a class="prev" href="../s08_context_compact/index.html">← s08 Context Compact</a><a class="next" href="../s10_task_system/index.html">s10 Task System →</a></div>
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

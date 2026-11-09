@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s02 Tool Use · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../preface.html">课程</a> / s02</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="../s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html" class="active"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s02: Tool Use — 多加一个工具，只加一行</h1>
+<p>s01 → <code>s02</code> → <a href="../s03_permission/index.html">s03</a> → s04 → ... → s16 → s17</p>
+<blockquote>
+<p><em>"加一个工具, 只加一个 handler"</em> — 循环不用动, 新工具注册进 dispatch map 就行。</p>
+<p><strong>Harness 层</strong>: 工具分发 — 扩展模型能触达的边界。</p>
+</blockquote>
+<hr>
+<h2>只有 bash 一个工具</h2>
+<p>s01 的 Agent 只有一个 bash 工具。读文件要 <code>cat</code>，写文件要 <code>echo "..." &gt; file.py</code>，改文件要 <code>sed</code>。</p>
+<p>模型想的是"读这个文件"，却要拼出 <code>cat path/to/file</code>。多了一层翻译，浪费 token，还容易拼错。</p>
+<hr>
+<h2>Bash 已经能做这些事，为什么还要加工具？</h2>
+<p>这些工具没有给 Agent 增加新的原始能力——同样的操作 Bash 都能完成。它们改善的是模型与 Harness 之间的接口。调用带有 <code>path</code> 参数的 <code>read_file</code> 时，模型不必把意图翻译成 shell 语法，因此能减少引号和转义错误。</p>
+<p>Harness 看到的也不再是一整条不透明的命令字符串，而是具名操作和结构化参数。这样后续策略可以更精确：s03 能按工具和路径决定放行或拒绝，s04 能在统一 hook 点记录操作。s02 先搭好这些章节依赖的分发结构。</p>
+<hr>
+<h2>全局视角：工具分发</h2>
+<p><img alt="Tool Dispatch" src="images/tool-dispatch.svg"></p>
+<p>s01 的循环完全保留（LLM 调用、<code>tool_use</code> block 判断、消息追加）。唯一的变动在工具执行那 1 行：<code>run_bash()</code> 替换为 <code>TOOL_HANDLERS[block.name]()</code> 查表分发。</p>
+<p>给 Agent 加一个工具只需要做两件事：</p>
+<ol>
+<li><strong>定义工具</strong>：在 <code>TOOLS</code> 数组里加一条描述</li>
+<li><strong>注册处理函数</strong>：在 <code>TOOL_HANDLERS</code> 字典里加一个映射</li>
+</ol>
+<hr>
+<h2>从 1 个工具到 5 个工具</h2>
+<p>s01 只有一个 bash：</p>
+<pre><code class="language-python">TOOLS = [{&quot;name&quot;: &quot;bash&quot;, ...}]
+
+def run_bash(command): ...
+</code></pre>
+<p>s02 加到 5 个，每个工具都是独立定义：</p>
+<pre><code class="language-python">TOOLS = [
+    {&quot;name&quot;: &quot;bash&quot;,       &quot;description&quot;: &quot;Run a shell command.&quot;, ...},
+    {&quot;name&quot;: &quot;read_file&quot;,  &quot;description&quot;: &quot;Read file contents.&quot;,  ...},
+    {&quot;name&quot;: &quot;write_file&quot;, &quot;description&quot;: &quot;Write content to file.&quot;, ...},
+    {&quot;name&quot;: &quot;edit_file&quot;,  &quot;description&quot;: &quot;Replace text in file once.&quot;, ...},
+    {&quot;name&quot;: &quot;glob&quot;,       &quot;description&quot;: &quot;Find files by pattern.&quot;, ...},
+]
+</code></pre>
+<p>每个工具有自己的实现函数：</p>
+<pre><code class="language-python">def run_read(path, limit=None):
+    lines = safe_path(path).read_text(encoding=&quot;utf-8&quot;).splitlines()
+    if limit:
+        lines = lines[:limit]
+    return &quot;\n&quot;.join(lines)
+
+def run_write(path, content):
+    safe_path(path).write_text(content, encoding=&quot;utf-8&quot;)
+    return f&quot;Wrote {len(content)} bytes to {path}&quot;
+
+def run_edit(path, old_text, new_text):
+    text = safe_path(path).read_text(encoding=&quot;utf-8&quot;)
+    if old_text not in text:
+        return &quot;Error: text not found&quot;
+    safe_path(path).write_text(text.replace(old_text, new_text, 1), encoding=&quot;utf-8&quot;)
+    return f&quot;Edited {path}&quot;
+
+def run_glob(pattern):
+    import glob as g
+    matches = sorted(set(g.glob(
+        pattern, root_dir=WORKDIR, recursive=True)))
+    shown = matches[:200]
+    if len(matches) &gt; 200:
+        shown.append(&quot;... (more matches omitted; narrow the pattern)&quot;)
+    return &quot;\n&quot;.join(shown)
+</code></pre>
+<hr>
+<h2>工具分发</h2>
+<pre><code class="language-python">TOOL_HANDLERS = {
+    &quot;bash&quot;:       run_bash,
+    &quot;read_file&quot;:  run_read,
+    &quot;write_file&quot;: run_write,
+    &quot;edit_file&quot;:  run_edit,
+    &quot;glob&quot;:       run_glob,
+}
+
+# 循环里只改了一行——从硬编码 run_bash 变成查表：
+for block in tool_calls:
+    handler = TOOL_HANDLERS[block.name]    # 查表
+    output = handler(**block.input)         # 调用
+    results.append(...)
+</code></pre>
+<p>加一个工具 = 在 <code>TOOLS</code> 数组加一条 + 在 <code>TOOL_HANDLERS</code> 字典加一行。循环不变。</p>
+<hr>
+<h2>多个工具调用</h2>
+<p>模型经常一次返回多个 tool_use："读一下 a.py 和 b.py，然后列出所有 .py 文件"。</p>
+<p>这些调用按照 <code>response.content</code> 中的原始顺序逐个执行。</p>
+<hr>
+<h2>速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>一句话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TOOL_HANDLERS</td>
+<td>工具名 → 处理函数的字典。加工具 = 加一行映射</td>
+</tr>
+<tr>
+<td>工具定义</td>
+<td>告诉模型"我能做什么"的 JSON schema</td>
+</tr>
+<tr>
+<td>多工具调用</td>
+<td>模型可一次返回多个 tool_use，并按原始顺序逐个执行</td>
+</tr>
+<tr>
+<td>循环不变</td>
+<td>s01 的 <code>while True</code> 循环一行都没改</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>相对 s01 的变更</h2>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>之前 (s01)</th>
+<th>之后 (s02)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>工具数量</td>
+<td>1 (bash)</td>
+<td>5 (+read, write, edit, glob)</td>
+</tr>
+<tr>
+<td>工具执行</td>
+<td>硬编码 <code>run_bash()</code></td>
+<td>TOOL_HANDLERS 查表分发</td>
+</tr>
+<tr>
+<td>路径安全</td>
+<td>无</td>
+<td>safe_path 校验（仅 file tools）</td>
+</tr>
+<tr>
+<td>循环</td>
+<td><code>while True</code> + <code>tool_use</code> block</td>
+<td>与 s01 完全一致</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>试一下</h2>
+<pre><code class="language-sh">cd learn-claude-code
+python s02_tool_use/code.py
+</code></pre>
+<p>试试这些 prompt：</p>
+<ol>
+<li><code>Read the file README.md and tell me what this project is about</code></li>
+<li><code>Create a file called test.py that prints "hello", then read it back</code></li>
+<li><code>Find all Python files in this directory</code></li>
+<li><code>Read both README.md and requirements.txt, then create a summary file</code></li>
+</ol>
+<p>观察重点：模型什么时候只调一个工具，什么时候一次调多个？多个工具调用的顺序和结果是否正确？</p>
+<hr>
+<h2>接下来</h2>
+<p>现在 Agent 有 5 个专用工具。file tools 受 <code>safe_path</code> 保护，但 bash 不受限制，<code>rm -rf /</code> 还是能跑。</p>
+<p>s03 Permission → 在工具执行之前加一道门：这个操作安全吗？需要用户批准吗？</p>
+    <div class="pager"><a class="prev" href="../s01_agent_loop/index.html">← s01 Agent Loop</a><a class="next" href="../s03_permission/index.html">s03 Permission →</a></div>
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

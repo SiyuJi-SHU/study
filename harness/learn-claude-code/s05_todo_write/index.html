@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s05 TodoWrite · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../preface.html">课程</a> / s05</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="../s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html" class="active"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s05: TodoWrite — 没有计划的 Agent，做着做着就偏了</h1>
+<p>s01 → s02 → s03 → s04 → <code>s05</code> → <a href="../s06_subagent/index.html">s06</a> → s07 → ... → s16 → s17</p>
+<blockquote>
+<p><em>"没有计划的 agent 走哪算哪"</em> — 先列步骤再动手，长任务更不容易漏项。</p>
+<p><strong>Harness 层</strong>: 规划 — 让 Agent 在动手之前先想清楚。</p>
+</blockquote>
+<hr>
+<h2>问题</h2>
+<p>给 Agent 一个复杂任务："把所有 Python 文件改成 snake_case 命名，然后跑测试，修好失败。"</p>
+<p>Agent 开始干活，改了 3 个文件，跑了个测试，发现 2 个失败，开始修。修着修着，它忘了最初是"改成 snake_case"，测试失败把注意力全吸走了。</p>
+<p>对话越长越严重：工具结果不断填满上下文，系统提示的影响力被稀释。一个 10 步重构，做完 1-3 步就开始即兴发挥，因为 4-10 步已经被挤出注意力了。</p>
+<hr>
+<h2>解决方案</h2>
+<p><img alt="Todo Overview" src="images/todo-overview.svg"></p>
+<p>S05 保留 S04 的工具分发、权限检查和 Hooks，再加入 <code>todo_write</code> 与 reminder 计数器。<code>todo_write</code> 只更新计划状态，实际工作仍由原有工具完成。</p>
+<p>新工具仍通过 <code>TOOL_HANDLERS[block.name]</code> 分发。连续三个工具调用轮次没有使用 <code>todo_write</code> 时，Harness 会把 reminder 追加到第三轮的工具结果中。</p>
+<hr>
+<h2>工作原理</h2>
+<p><strong>TodoManager</strong> 持有内存中的任务列表，负责校验更新，并把渲染结果返回给模型。<code>run_todo_write</code> 同时把这份状态打印到终端：</p>
+<pre><code class="language-python">class TodoManager:
+    def __init__(self):
+        self.items = []
+
+    def update(self, todos: list | str) -&gt; str:
+        # 替换当前列表前进行解析与校验
+        validated = []
+        ...
+        self.items = validated
+        return self.render()
+
+    def render(self) -&gt; str:
+        # [ ] 待办, [&gt;] 进行中, [x] 已完成
+        ...
+
+
+TODO = TodoManager()
+
+def run_todo_write(todos: list | str) -&gt; str:
+    output = TODO.update(todos)
+    print(output)
+    return output
+</code></pre>
+<p>一次更新最多包含 20 项；每项都必须有非空的 <code>content</code>；同一时间只能有一个 <code>in_progress</code>。字符串输入可以是 JSON，也可以是 Python 列表表示，解析过程不使用 <code>eval</code>。</p>
+<p>工具定义和其他 5 个工具一起加入 dispatch map：</p>
+<pre><code class="language-python">TOOLS = [
+    {&quot;name&quot;: &quot;bash&quot;,       ...},
+    {&quot;name&quot;: &quot;read_file&quot;,  ...},
+    {&quot;name&quot;: &quot;write_file&quot;, ...},
+    {&quot;name&quot;: &quot;edit_file&quot;,  ...},
+    {&quot;name&quot;: &quot;glob&quot;,       ...},
+    # s05: 新增一条
+    {&quot;name&quot;: &quot;todo_write&quot;, &quot;description&quot;: &quot;Create and manage a task list ...&quot;,
+     &quot;input_schema&quot;: {
+         &quot;type&quot;: &quot;object&quot;,
+         &quot;properties&quot;: {
+             &quot;todos&quot;: {
+                 &quot;type&quot;: &quot;array&quot;,
+                 &quot;items&quot;: {
+                     &quot;type&quot;: &quot;object&quot;,
+                     &quot;properties&quot;: {
+                         &quot;content&quot;: {&quot;type&quot;: &quot;string&quot;},
+                         &quot;status&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;enum&quot;: [&quot;pending&quot;, &quot;in_progress&quot;, &quot;completed&quot;]},
+                     },
+                 },
+             },
+         },
+     },
+    },
+]
+
+TOOL_HANDLERS[&quot;todo_write&quot;] = run_todo_write
+</code></pre>
+<p><strong>Reminder</strong>：连续三个工具调用轮次没有使用 <code>todo_write</code> 时，reminder 会追加到第三轮的结果中，随后计数器清零：</p>
+<pre><code class="language-python">rounds_since_todo = 0 if used_todo else rounds_since_todo + 1
+if rounds_since_todo &gt;= 3:
+    results.append({
+        &quot;type&quot;: &quot;text&quot;,
+        &quot;text&quot;: &quot;&lt;reminder&gt;Update your todos.&lt;/reminder&gt;&quot;,
+    })
+    rounds_since_todo = 0
+</code></pre>
+<p>Agent 收到任务后的典型流程：先调 <code>todo_write</code> 列出所有步骤（全 <code>pending</code>）→ 做一个步骤，改成 <code>in_progress</code> → 做完改成 <code>completed</code> → 看下一个 <code>pending</code> → 继续。</p>
+<p><strong>关键洞察</strong>：todo_write 不给 Agent 增加任何<strong>执行能力</strong>。它增加的是<strong>规划能力</strong>。</p>
+<hr>
+<h2>相对 s04 的变更</h2>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>之前 (s04)</th>
+<th>之后 (s05)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>工具数量</td>
+<td>5 (bash, read, write, edit, glob)</td>
+<td>6 (+todo_write)</td>
+</tr>
+<tr>
+<td>规划能力</td>
+<td>无</td>
+<td>带状态的 TODO 列表 + reminder</td>
+</tr>
+<tr>
+<td>SYSTEM 提示</td>
+<td>通用提示</td>
+<td>加入 "先计划再执行" 引导</td>
+</tr>
+<tr>
+<td>循环</td>
+<td>工具分发与 Hooks</td>
+<td>保留分发路径，加入 rounds_since_todo 和 reminder 注入</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>试一下</h2>
+<pre><code class="language-sh">cd learn-claude-code
+python s05_todo_write/code.py
+</code></pre>
+<p>试试这些 prompt：</p>
+<ol>
+<li><code>Refactor s05_todo_write/example/hello.py: add type hints, docstrings, and a main guard</code>（先列 3 步再执行）</li>
+<li><code>Create a Python package under s05_todo_write/example/demo_pkg with __init__.py, utils.py, and tests/test_utils.py</code></li>
+<li><code>Review Python files under s05_todo_write/example and fix any style issues</code></li>
+</ol>
+<p>观察重点：第一次工具调用是不是 <code>todo_write</code>？TODO 列了几步？执行过程中状态有没有从 <code>pending</code> 变成 <code>in_progress</code> / <code>completed</code>？</p>
+<hr>
+<h2>接下来</h2>
+<p>Agent 能计划了。但如果一个任务太大，比如"重构整个认证模块"，光靠 TODO 列表不够。这个任务本身就是几十个小任务的集合，放在同一个对话里会被上下文淹没。</p>
+<p>s06 Subagent → 把大任务拆成子任务，每个子任务派一个独立的 Agent。它们有自己的干净上下文，不会互相污染。</p>
+    <div class="pager"><a class="prev" href="../s04_hooks/index.html">← s04 Hooks</a><a class="next" href="../s06_subagent/index.html">s06 Subagent →</a></div>
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

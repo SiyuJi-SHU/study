@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s14 MCP Plugin · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../preface.html">课程</a> / s14</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="../s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html" class="active"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s14: MCP Tools — 发现并调用外部工具</h1>
+<p><a href="../s04_hooks/index.html">s04</a> → <code>s14</code> → <a href="../s15_integrated_harness/index.html">s15</a> → s16 → s17</p>
+<blockquote>
+<p><strong>Harness 层</strong>：MCP Tools — 连接服务、发现工具，并把它们加入 Agent 的工具循环。</p>
+</blockquote>
+<hr>
+<h2>问题</h2>
+<p>前面的基础工具都直接写在 <code>code.py</code> 里。接入文档系统和部署平台时，我们还可以继续手写 <code>search_docs</code>、<code>deploy_status</code> 和 <code>trigger_deploy</code>，但每增加一个服务，都要重新维护工具定义、参数格式和调用代码。</p>
+<p>MCP 把这部分拆成两个角色：server 提供工具列表和调用入口，Harness 负责连接、命名、权限检查，并把发现的工具交给模型。</p>
+<hr>
+<h2>解决方案</h2>
+<p><img alt="MCP Architecture" src="images/mcp-architecture.svg"></p>
+<p>本章从 s04 的五个基础工具和 Hooks 出发，增加三个部分：</p>
+<ul>
+<li><code>MCPClient</code> 保存 server 返回的工具定义和调用入口。</li>
+<li><code>connect_mcp</code> 连接一个 server，并取得它的工具列表。</li>
+<li><code>assemble_tool_pool</code> 把基础工具与已经连接的 MCP 工具组装到同一个工具池。</li>
+</ul>
+<p>课程里的 <code>docs</code> 和 <code>deploy</code> 是进程内模拟 server，用来展示 <code>tools/list</code>、<code>tools/call</code> 和动态工具池。真实 MCP transport 不在本章实现。</p>
+<hr>
+<h2>工作原理</h2>
+<h3>1. 基础 Agent Loop 不需要改变</h3>
+<p>每轮调用模型前，Harness 组装当前工具池：</p>
+<pre><code class="language-python">def agent_loop(messages: list):
+    while True:
+        tools, handlers = assemble_tool_pool()
+        response = client.messages.create(
+            model=MODEL,
+            system=assemble_system_prompt(),
+            messages=messages,
+            tools=tools,
+            max_tokens=8000,
+        )
+        ...
+</code></pre>
+<p>连接新 server 后，下一轮 <code>assemble_tool_pool()</code> 会把新工具加入模型输入。工具执行后，结果仍作为 <code>tool_result</code> 追加到 messages。</p>
+<h3>2. MCPClient 保存发现结果和调用入口</h3>
+<pre><code class="language-python">class MCPClient:
+    def register(self, tool_defs, handlers):
+        self.tools = list(tool_defs)
+        self._handlers = dict(handlers)
+
+    def call_tool(self, tool_name, args):
+        handler = self._handlers.get(tool_name)
+        if not handler:
+            return f&quot;MCP error: unknown tool '{tool_name}'&quot;
+        try:
+            return str(handler(**args))
+        except Exception as error:
+            return f&quot;MCP error: {type(error).__name__}: {error}&quot;
+</code></pre>
+<p><code>register()</code> 对应课程里的工具发现结果，<code>call_tool()</code> 对应调用入口。错误会返回给模型，不会直接结束 Agent Loop。</p>
+<h3>3. connect_mcp 只负责连接和发现</h3>
+<pre><code class="language-python">def connect_mcp(name: str) -&gt; str:
+    if name in mcp_clients:
+        return f&quot;MCP server '{name}' already connected&quot;
+    factory = MOCK_SERVERS.get(name)
+    if not factory:
+        return f&quot;Unknown server '{name}'&quot;
+    server = factory()
+    mcp_clients[name] = server
+    ...
+</code></pre>
+<p>开始时，模型只看到五个基础工具和 <code>connect_mcp</code>。调用 <code>connect_mcp(name="docs")</code> 后，Harness 保存 docs client。下一轮模型调用会看到：</p>
+<pre><code class="language-text">mcp__docs__search
+mcp__docs__get_version
+</code></pre>
+<h3>4. 前缀区分不同 server 的同名工具</h3>
+<p>多个 server 都可能提供 <code>search</code> 或 <code>status</code>。Harness 使用：</p>
+<pre><code class="language-text">mcp__{server}__{tool}
+</code></pre>
+<p><code>normalize_mcp_name()</code> 把不适合模型工具名的字符替换为下划线。组装工具池时还会检查规范化后的名称冲突和 64 字符长度限制：</p>
+<pre><code class="language-python">prefixed = f&quot;mcp__{safe_server}__{safe_tool}&quot;
+if prefixed in origins:
+    raise ValueError(&quot;MCP tool name collision after normalization&quot;)
+</code></pre>
+<p>因此 <code>docs.one/get.version</code> 和 <code>docs_one/get_version</code> 不会悄悄映射到同一个名字。</p>
+<h3>5. 工具定义和 handler 一起加入工具池</h3>
+<pre><code class="language-python">tools.append({
+    &quot;name&quot;: prefixed,
+    &quot;description&quot;: tool_def.get(&quot;description&quot;, &quot;&quot;),
+    &quot;input_schema&quot;: schema,
+})
+handlers[prefixed] = (
+    lambda *, client=server, tool=raw_name, **kwargs:
+    client.call_tool(tool, kwargs)
+)
+</code></pre>
+<p>模型看到带前缀的名字；handler 仍使用 server 原始工具名调用 <code>MCPClient</code>。默认参数保存当前 client 和 tool，避免循环里的 lambda 全部指向最后一个工具。</p>
+<h3>6. 权限由宿主配置决定</h3>
+<p>MCP server 可以提供 <code>readOnlyHint</code> 或 <code>destructiveHint</code>，但这些信息来自 server，不能直接作为授权依据。本章使用宿主侧策略：</p>
+<pre><code class="language-python">MCP_HOST_POLICY = {
+    (&quot;docs&quot;, &quot;search&quot;): &quot;allow&quot;,
+    (&quot;docs&quot;, &quot;get_version&quot;): &quot;allow&quot;,
+    (&quot;deploy&quot;, &quot;status&quot;): &quot;allow&quot;,
+    (&quot;deploy&quot;, &quot;trigger&quot;): &quot;confirm&quot;,
+}
+</code></pre>
+<p><code>permission_hook()</code> 根据规范化后的工具名查询这份策略。未配置的外部工具默认需要用户确认；即使 description 写着 <code>readOnly</code>，也不会自动放行。</p>
+<h3>7. 工具输入错误留在工具边界内</h3>
+<p>模型可能漏传参数，也可能传入 server 不接受的字段。<code>execute_tool()</code> 和 <code>MCPClient.call_tool()</code> 都会捕获异常，并返回错误 <code>tool_result</code>：</p>
+<pre><code class="language-text">MCP error: TypeError: &lt;lambda&gt;() missing 1 required argument: 'query'
+</code></pre>
+<p>模型可以在下一轮修正参数，而不是让课程脚本直接退出。</p>
+<hr>
+<h2>相对 s04 的变化</h2>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>s04</th>
+<th>s14</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基础工具</td>
+<td>五个固定工具</td>
+<td>保持不变</td>
+</tr>
+<tr>
+<td>工具来源</td>
+<td><code>code.py</code> 中的定义</td>
+<td>基础工具加动态发现的 MCP 工具</td>
+</tr>
+<tr>
+<td>工具池</td>
+<td>固定 <code>TOOLS</code></td>
+<td>每轮由 <code>assemble_tool_pool()</code> 组装</td>
+</tr>
+<tr>
+<td>外部工具名</td>
+<td>无</td>
+<td><code>mcp__{server}__{tool}</code></td>
+</tr>
+<tr>
+<td>权限</td>
+<td>Shell 和路径检查</td>
+<td>增加宿主侧 MCP 策略</td>
+</tr>
+<tr>
+<td>MCP transport</td>
+<td>无</td>
+<td>使用进程内模拟 server 展示协议边界</td>
+</tr>
+</tbody>
+</table>
+<p>本章不带入 Task、Background、Cron、Team 或 Worktree。它们会在 s15 的 Integrated Harness 中与 MCP 合并。</p>
+<hr>
+<h2>试一下</h2>
+<pre><code class="language-sh">cd learn-claude-code
+python s14_mcp_plugin/code.py
+</code></pre>
+<p>输入：</p>
+<pre><code class="language-text">连接 docs server，搜索 agent hooks，并告诉我当前文档 API 版本。
+</code></pre>
+<p>一次典型工具轨迹是：</p>
+<pre><code class="language-text">connect_mcp(name=&quot;docs&quot;)
+mcp__docs__search(query=&quot;agent hooks&quot;)
+mcp__docs__get_version()
+</code></pre>
+<p>再输入：</p>
+<pre><code class="language-text">连接 deploy server，查看 web 服务状态，不要触发部署。
+</code></pre>
+<p><code>status</code> 会按宿主策略直接执行；<code>trigger</code> 需要用户确认。</p>
+<hr>
+<h2>接下来</h2>
+<p>目前，MCP 还是一条独立的课程分支。s15 Integrated Harness 会把基础工具、Hooks、Skills、Context、Memory、Task、Background、Cron、Teams 和 MCP 放进同一个运行时。</p>
+    <div class="pager"><a class="prev" href="../s13_agent_teams/index.html">← s13 Agent Teams</a><a class="next" href="../s15_integrated_harness/index.html">s15 整合 Harness →</a></div>
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

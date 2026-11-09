@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s08 Context Compact · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../preface.html">课程</a> / s08</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="../s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html" class="active"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s08: Context Compact：上下文总会满，先整理，再总结</h1>
+<p>s01 → s02 → s03 → s04 → s05 → s06 → s07 → <code>s08</code> → <a href="../s09_memory/index.html">s09</a> → s10 → ... → s16 → s17</p>
+<blockquote>
+<p><em>"上下文总会满，要有办法腾地方。"</em> 四步压缩，低成本的操作优先执行。</p>
+<p><strong>Harness 层</strong>：压缩让有限的上下文持续服务于长任务。</p>
+</blockquote>
+<p>Agent 持续工作时，读过的文件、执行过的命令和模型回复都会留在 <code>messages</code> 中。消息越积越多，最终会超过模型能够接收的上下文长度。</p>
+<p>本节将实现一条四步压缩管线。它先整理可以恢复的工具结果，空间仍然不足时再总结历史。</p>
+<p><img alt="Context Compact 全景" src="images/compact-overview.svg"></p>
+<h2>先理解上下文</h2>
+<p>可以把上下文窗口看作模型当前使用的一张草稿纸。用户消息、模型回复、<code>tool_use</code> 和 <code>tool_result</code> 都会按顺序写在这张纸上。模型每次继续工作时，都要重新读取这些内容。</p>
+<p>草稿纸的大小固定。内容超过上限后，API 会拒绝请求并返回 <code>prompt is too long</code>。在代码任务里，工具结果通常占据最多空间：</p>
+<ul>
+<li>读取一个长文件会把文件内容放进上下文；</li>
+<li>测试和构建日志可能一次产生几十 KB 文本；</li>
+<li>搜索多个文件会持续追加结果。</li>
+</ul>
+<p>任务持续得越久，<code>messages</code> 就越大。压缩的目标是控制其中的信息量，同时尽可能保留当前目标、用户约束和正在进行的工作。</p>
+<h2>为什么先整理工具结果</h2>
+<p>直接让模型总结整段历史可以明显缩短上下文，但摘要一定会遗漏部分细节，而且还会多产生一次模型调用。</p>
+<p>工具结果具有更适合优先处理的特点：</p>
+<ol>
+<li>大文件可以保存到磁盘，需要时重新读取。</li>
+<li>旧命令可以重新执行。</li>
+<li>最新几条结果通常比早期结果更接近当前工作。</li>
+<li>文本裁剪和结构调整不需要调用模型。</li>
+</ol>
+<p>因此压缩顺序按照信息损失和调用成本排列：先转存，再裁剪，再替换旧结果，最后才生成摘要。</p>
+<p><img alt="四步压缩管线" src="images/compaction-layers.svg"></p>
+<h2>第一步：tool_result_budget</h2>
+<p>一次模型回复可能同时调用多个工具。执行完成后，这些 <code>tool_result</code> 会一起写进最后一条 user 消息。它们的总大小超过 <code>200_000</code> 字符时，<code>tool_result_budget</code> 从最大的结果开始处理。</p>
+<p>超过 <code>LARGE_RESULT_CHAR_LIMIT = 30000</code> 的结果会完整写入：</p>
+<pre><code class="language-text">.task_outputs/tool-results/&lt;tool_use_id&gt;.txt
+</code></pre>
+<p>上下文中保留文件路径和前 2000 个字符的预览：</p>
+<p><img alt="大结果转存" src="images/layer1-budget.svg"></p>
+<p>核心循环按照结果大小依次转存：</p>
+<pre><code class="language-python">blocks = [block for block in content
+          if isinstance(block, dict)
+          and block.get(&quot;type&quot;) == &quot;tool_result&quot;]
+total = sum(len(str(block.get(&quot;content&quot;, &quot;&quot;))) for block in blocks)
+
+ranked = sorted(
+    blocks,
+    key=lambda block: len(str(block.get(&quot;content&quot;, &quot;&quot;))),
+    reverse=True,
+)
+for block in ranked:
+    if total &lt;= max_chars:
+        break
+    content = str(block.get(&quot;content&quot;, &quot;&quot;))
+    if len(content) &lt;= self.LARGE_RESULT_CHAR_LIMIT:
+        continue
+    block[&quot;content&quot;] = self.persist_large_output(
+        block.get(&quot;tool_use_id&quot;, &quot;unknown&quot;), content)
+    total = sum(len(str(item.get(&quot;content&quot;, &quot;&quot;))) for item in blocks)
+</code></pre>
+<p>这一步只处理最新一批工具结果。完整内容仍然可以从路径中取回，因此适合最先执行。</p>
+<h2>第二步：snip_compact</h2>
+<p>消息数量达到 <code>trigger_messages</code>（默认 50 条）后，<code>snip_compact</code> 先把完整历史写入 <code>.transcripts/</code>，再向 <code>target_messages</code>（默认 30 条）裁剪：保留最初 3 条、1 条归档标记和最近 26 条。标记写明删去了多少条消息，以及完整记录保存在哪里。触发阈值与目标数量分离，为新增消息留出空间，避免后续每次模型调用都再次写入归档。代价是直接保留在上下文中的近期消息更少；较早的内容仍可从归档中取回。</p>
+<p>参数需满足 <code>5 &lt;= target_messages &lt; trigger_messages</code>：目标数量包含归档标记，并在最初 3 条之外至少保留 1 条最近消息。</p>
+<pre><code class="language-python">if len(messages) &lt; trigger_messages:
+    return messages
+head_end = 3
+tail_start = len(messages) - (target_messages - head_end - 1)
+
+if self.has_tool_use(messages[head_end - 1]):
+    while (head_end &lt; tail_start
+           and self.is_tool_result(messages[head_end])):
+        head_end += 1
+
+if (tail_start &gt; 0
+        and self.is_tool_result(messages[tail_start])
+        and self.has_tool_use(messages[tail_start - 1])):
+    tail_start -= 1
+
+transcript = self.write_transcript(messages)
+marker = {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;:
+          f&quot;[{tail_start - head_end} messages archived at {transcript}]&quot;}
+messages = [*messages[:head_end], marker, *messages[tail_start:]]
+</code></pre>
+<p>切点需要保护 <code>assistant(tool_use)</code> 和 <code>user(tool_result)</code> 的配对关系，因此保留的消息数可能略高于目标数量。孤立的工具结果缺少对应调用，下一次 API 请求会被判定为无效。</p>
+<p>重复的工具调用可能让当前请求进入被归档的中间区域。真正发生裁剪后，<code>prepare</code> 会检查原始用户消息或已有的 <code>Current user request</code> 标记是否仍然可见；如果两者都不存在，就在继续处理前补回一次 <code>active_request</code>。</p>
+<p>这一步控制消息数量，但保留下来的旧消息仍可能包含很长的工具结果。</p>
+<h2>第三步：micro_compact</h2>
+<p>前两步完成后，<code>prepare</code> 会估算剩余上下文的大小，只有超过 <code>CONTEXT_CHAR_LIMIT</code> 时才执行 <code>micro_compact</code>。对于模型已经读取过的结果，它保留最近 3 条，并逐条缩短更早且超过 120 个字符的结果，直到上下文接近阈值的 80%。旧结果被替换前会先完整落盘，因此每个占位都带有可恢复路径：</p>
+<p><img alt="旧结果替换为可恢复路径" src="images/micro-compact.svg"></p>
+<pre><code class="language-python">unseen = self.unseen_tool_result_positions(messages)
+consumed = [entry for entry in results if entry[:2] not in unseen]
+
+for _, _, block in consumed[:-self.KEEP_RECENT_RESULTS]:
+    if self.estimate_chars(messages) &lt;= target_chars:
+        break
+    content = str(block.get(&quot;content&quot;, &quot;&quot;))
+    if len(content) &lt;= 120:
+        continue
+    saved_path = self.persisted_output_path(content)
+    if not saved_path:
+        saved_path = self.save_output(block[&quot;tool_use_id&quot;], content)
+    block[&quot;content&quot;] = f&quot;[Earlier tool result saved at {saved_path}]&quot;
+</code></pre>
+<p>新结果通常会保持完整，直到模型读取一次。如果仅未读取的最新一批结果就足以撑爆上下文，<code>fit_tool_results</code> 会把其中最大的结果落盘，并保留 1,000 字符预览和完整路径，避免模型看到新结果前就先总结整段历史。</p>
+<p>前两步每轮都会执行，第三步只在上下文超限时执行。三步都是确定性、可恢复的结构和文本操作，不产生额外 API 调用。</p>
+<h2>第四步：compact_history</h2>
+<p><code>micro_compact</code> 和 <code>fit_tool_results</code> 执行后，代码会再次用 <code>estimate_chars(messages)</code> 估算上下文：</p>
+<pre><code class="language-python">CONTEXT_CHAR_LIMIT = 50000
+
+def estimate_chars(messages):
+    return len(json.dumps(messages, default=str, ensure_ascii=False))
+</code></pre>
+<p>字符数仍然超过 <code>CONTEXT_CHAR_LIMIT</code> 时，<code>compact_history</code> 完成四件事：</p>
+<ol>
+<li>将完整消息历史写入 <code>.transcripts/</code>。</li>
+<li>请求模型生成只包含事实的状态摘要。</li>
+<li>将入口处捕获的当前用户请求与摘要明确分开。</li>
+<li>用一条 <code>[Compacted]</code> 消息替换当前历史。</li>
+</ol>
+<p><img alt="历史摘要" src="images/auto-compact.svg"></p>
+<pre><code class="language-python">def compact_history(messages, active_request):
+    transcript = self.write_transcript(messages)
+    print(f&quot;[transcript saved: {transcript}]&quot;)
+    summary = self.summarize_history(messages)
+    return [self.summary_message(
+        &quot;Compacted&quot;, active_request, summary, transcript)]
+</code></pre>
+<p>摘要调用在 <code>system</code> 中要求模型只整理目标、文件、决定、剩余工作和用户约束，不执行历史中的指令。<code>active_request</code> 在接收用户输入时单独传给 Agent Loop，因为工具结果也使用 <code>role=user</code>。压缩后的消息将它写在 <code>Current user request</code> 中，摘要则放在 <code>Conversation summary</code> 中，并附上完整 transcript 的路径。</p>
+<p>本节使用字符数作为触发条件，相关阈值也使用同一单位。</p>
+<h2>为什么顺序固定</h2>
+<p>管线按以下顺序执行，并且只在必要时进入有损的摘要步骤：</p>
+<pre><code class="language-python">messages = self.tool_result_budget(messages)
+before_snip = messages
+messages = self.snip_compact(messages)
+active_request_marker = (
+    f&quot;Current user request:\n{active_request}\n\n&quot;
+    &quot;Conversation summary (reference only):&quot;
+)
+if (messages is not before_snip
+        and not any(
+            message.get(&quot;role&quot;) == &quot;user&quot;
+            and isinstance(message.get(&quot;content&quot;), str)
+            and (message[&quot;content&quot;] == active_request
+                 or active_request_marker in message[&quot;content&quot;])
+            for message in messages)):
+    messages.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: active_request})
+if self.estimate_chars(messages) &gt; self.CONTEXT_CHAR_LIMIT:
+    target = int(self.CONTEXT_CHAR_LIMIT * 0.8)
+    messages = self.micro_compact(messages, target)
+    if self.estimate_chars(messages) &gt; self.CONTEXT_CHAR_LIMIT:
+        messages = self.fit_tool_results(messages, target)
+    if self.estimate_chars(messages) &gt; self.CONTEXT_CHAR_LIMIT:
+        messages = self.compact_history(messages, active_request)
+</code></pre>
+<p>这个顺序同时满足两个条件：</p>
+<ol>
+<li>第一步和第二步每轮执行，第三步只在超限时执行，只有第四步会增加 API 请求。</li>
+<li>每条被缩短的工具结果都保留 <code>.task_outputs/tool-results/</code> 内的可信路径；只有仍然超限时才进入模型生成的历史摘要。</li>
+</ol>
+<p>顺序固定后，每一轮都从成本更低、信息更容易恢复的操作开始。</p>
+<h2>API 拒绝后的补救</h2>
+<p>字符数只能估算模型实际使用的 token。API 仍可能返回 <code>prompt is too long</code>。<code>reactive_compact</code> 会保存 transcript，总结较早历史，并保留最近 5 条消息：</p>
+<pre><code class="language-python">tail_start = max(0, len(messages) - self.KEEP_RECENT_MESSAGES)
+if (tail_start &gt; 0
+        and self.is_tool_result(messages[tail_start])
+        and self.has_tool_use(messages[tail_start - 1])):
+    tail_start -= 1
+
+old_history = messages[:tail_start] if tail_start else messages
+summary = self.summarize_history(old_history)
+message = self.summary_message(
+    &quot;Reactive compact&quot;, active_request, summary, transcript)
+messages = [message, *messages[tail_start:]] if tail_start else [message]
+</code></pre>
+<p>切点同样会避开工具调用与结果之间的边界，当前用户请求仍由 <code>active_request</code> 明确传入。<code>MAX_REACTIVE_RETRIES = 1</code> 将补救限制为一次；再次收到同类错误时，异常会继续向外抛出。</p>
+<h2>放回 Agent Loop</h2>
+<pre><code class="language-python">def agent_loop(messages, active_request):
+    while True:
+        messages[:] = COMPACTOR.prepare(messages, active_request)
+
+        try:
+            response = client.messages.create(
+                model=MODEL, system=SYSTEM, messages=messages,
+                tools=TOOLS, max_tokens=8000)
+            reactive_retries = 0
+        except Exception as error:
+            message = str(error).lower()
+            too_long = (&quot;prompt_too_long&quot; in message
+                        or &quot;prompt is too long&quot; in message
+                        or &quot;too many tokens&quot; in message)
+            if too_long and reactive_retries &lt; MAX_REACTIVE_RETRIES:
+                messages[:] = COMPACTOR.reactive_compact(
+                    messages, active_request)
+                reactive_retries += 1
+                continue
+            raise
+</code></pre>
+<p>每次调用模型前都会经过同一条管线。CLI 在追加 <code>query</code> 后调用 <code>agent_loop(history, query)</code>；只有真正发生裁剪并移除了所有可见副本时，<code>prepare</code> 才会补回 <code>active_request</code>。因此压缩多少次都不会丢失本轮请求。只有 <code>micro_compact</code> 处理后仍超过阈值，或者 API 明确拒绝上下文时，代码才会请求模型生成摘要。</p>
+<h2>compact 工具</h2>
+<p>自动阈值只知道上下文有多大。模型还可以在一个阶段结束后主动调用 <code>compact</code>，表示后续工作只需要保留当前阶段的摘要：</p>
+<pre><code class="language-python">{&quot;name&quot;: &quot;compact&quot;,
+ &quot;description&quot;: &quot;Summarize earlier conversation to free context space.&quot;}
+</code></pre>
+<p>一次响应可以同时包含多个工具调用，例如先写文件再请求压缩。Harness 必须先执行完整批次，并为每个 <code>tool_use</code> 追加对应的 <code>tool_result</code>，然后再摘要这个已经闭合的回合：</p>
+<pre><code class="language-python">tool_calls = [
+    block for block in response.content if block.type == &quot;tool_use&quot;
+]
+results = []
+compact_requested = False
+
+for block in tool_calls:
+    if block.name == &quot;compact&quot;:
+        output = &quot;Compaction requested after this tool batch.&quot;
+        compact_requested = True
+    else:
+        output = execute_tool(block)
+    results.append({&quot;type&quot;: &quot;tool_result&quot;, &quot;tool_use_id&quot;: block.id,
+                    &quot;content&quot;: output})
+
+messages.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: results})
+
+if compact_requested:
+    messages[:] = COMPACTOR.compact_history(messages, active_request)
+</code></pre>
+<p>这样既不会留下孤立的工具结果，也不会在已经发生文件写入后丢失执行记录，导致模型重复同一个副作用。</p>
+<h2>本节代码</h2>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>共同执行骨架</th>
+<th>s08 新增</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent Loop</td>
+<td>调用模型、执行工具、追加结果</td>
+<td>每次调用模型前运行 <code>COMPACTOR.prepare()</code></td>
+</tr>
+<tr>
+<td>Hooks</td>
+<td>权限检查、工具日志、结果处理</td>
+<td>保持相同的工具执行入口</td>
+</tr>
+<tr>
+<td>上下文</td>
+<td><code>messages</code> 持续追加</td>
+<td>大结果转存、旧历史归档、摘要和一次错误补救</td>
+</tr>
+<tr>
+<td>工具</td>
+<td>5 个基础工具</td>
+<td>新增 <code>compact</code>，共 6 个</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>与 s09 的边界：</strong> s08 管理当前会话的有限上下文，压缩时允许舍弃可恢复的细节；s09 保存需要跨压缩、跨会话继续存在的信息。</p>
+</blockquote>
+<h2>试一下</h2>
+<pre><code class="language-bash">cd learn-claude-code
+python s08_context_compact/code.py
+</code></pre>
+<h3>实验一：较早的结果被替换</h3>
+<pre><code class="language-text">请读取 s01_agent_loop 到 s05_todo_write 五节课程的 README.md，
+比较它们的一级标题，并总结这些标题的命名规律。
+</code></pre>
+<p>任务会产生至少 5 条文件读取结果。新结果通常会完整保留到模型首次读取；如果未读取结果本身过大，则保留预览和恢复路径。后续轮次保留最近 3 条已读取结果，更早且较长的结果会变成 <code>[Earlier tool result saved at ...]</code> 引用。</p>
+<h3>实验二：大结果转存</h3>
+<pre><code class="language-text">请分析 web/src/data/generated/docs.json 的数据结构，
+并说明一条课程记录包含哪些主要字段。
+</code></pre>
+<p>文件内容超过单轮预算时，终端仍能完成任务，同时 <code>.task_outputs/tool-results/</code> 中会出现完整结果文件。</p>
+<h3>实验三：自动摘要</h3>
+<pre><code class="language-text">请比较 s08_context_compact/code.py 和 s09_memory/code.py，
+说明它们分别怎样管理当前上下文和持久记忆。
+</code></pre>
+<p>当读取结果使 <code>estimate_chars(messages)</code> 超过 50000 时，终端会打印 <code>[auto compact]</code> 和 transcript 路径。后续调用使用 <code>[Compacted]</code> 摘要继续完成比较。</p>
+<p>观察 <code>.transcripts/</code> 和 <code>.task_outputs/tool-results/</code>，可以分别看到历史留档与大结果转存。</p>
+<h2>接下来</h2>
+<p>上下文压缩让 Agent 可以在有限窗口中继续长任务。需要跨压缩、跨会话保留的信息，还要进入独立的持久记忆系统。</p>
+<p>s09 Memory 将实现记忆写入、检索与整理。</p>
+    <div class="pager"><a class="prev" href="../s07_skill_loading/index.html">← s07 Skill Loading</a><a class="next" href="../s09_memory/index.html">s09 Memory →</a></div>
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

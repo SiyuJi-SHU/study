@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s11 Background Tasks · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../preface.html">课程</a> / s11</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="../s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html" class="active"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s11: Background Tasks — 慢操作放后台</h1>
+<p>s01 → ... → s09 → s10 → <code>s11</code> → <a href="../s12_cron_scheduler/index.html">s12</a> → s13 → ... → s16 → s17</p>
+<blockquote>
+<p><em>"慢操作放后台，Agent Loop 继续运行"</em> — 后台线程执行命令，后续轮次收集完成结果。</p>
+<p><strong>Harness 层</strong>: 后台 — 异步执行, 不阻塞主循环。</p>
+</blockquote>
+<hr>
+<h2>问题</h2>
+<p>读取文件或运行 <code>git status</code> 通常很快，同步执行时等待并不明显。但安装依赖、执行完整测试或构建项目可能持续几分钟。在命令返回前，Harness 无法处理当前响应中的下一个工具调用，也不能进入下一轮。</p>
+<p>如果后续工作并不依赖这个命令，继续等待就没有必要。例如，Agent 启动完整测试后，本来还可以检查文档或整理其他文件，但同步执行会让整个 Agent Loop 停在这次 Bash 调用上。</p>
+<p>S11 要解决的问题是：让耗时的 Bash 命令在后台执行，使 Agent Loop 可以继续处理其他工作，并在后续轮次收集完成结果。</p>
+<hr>
+<h2>解决方案</h2>
+<p><img alt="Background Tasks Overview" src="images/background-tasks-overview.svg"></p>
+<p>本章把慢操作放入后台线程。当前工具调用先返回一个占位 <code>tool_result</code>，Agent Loop 可以继续运行；后续轮次开始时再收集已经完成的结果，以通知形式加入对话。</p>
+<p>同步 vs 后台：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>同步 (s04)</th>
+<th>后台 (s11)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>慢操作</td>
+<td>当前工具调用被阻塞</td>
+<td>后台线程执行</td>
+</tr>
+<tr>
+<td>Agent Loop</td>
+<td>等待命令返回</td>
+<td>收到占位结果后继续运行</td>
+</tr>
+<tr>
+<td>结果</td>
+<td>命令结束后返回</td>
+<td>先返回 <code>bg_id</code>，后续轮次收集结果</td>
+</tr>
+<tr>
+<td>判断标准</td>
+<td>—</td>
+<td>bash 的 <code>run_in_background</code> 参数</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>工作原理</h2>
+<h3>should_run_background: 显式请求</h3>
+<p>模型通过 bash 工具的 <code>run_in_background</code> 参数请求后台执行。只有参数明确为 <code>true</code>，并且工具是 bash 时，才会进入后台执行路径。其他调用仍然同步执行。</p>
+<pre><code class="language-python">def should_run_background(tool_name: str, tool_input: dict) -&gt; bool:
+    return (
+        tool_name == &quot;bash&quot;
+        and tool_input.get(&quot;run_in_background&quot;) is True
+    )
+</code></pre>
+<p>不再根据 <code>install</code>、<code>build</code> 或 <code>test</code> 等关键词猜测。是否进入后台由工具调用明确决定。</p>
+<h3>BackgroundManager: 后台执行与生命周期</h3>
+<p><code>BackgroundManager</code> 保存任务状态和完成队列。<code>start()</code> 先登记任务，再启动 daemon 线程，并立即返回 <code>bg_id</code>：</p>
+<pre><code class="language-python">class BackgroundManager:
+    def __init__(self):
+        self.tasks = {}
+        self.results = {}
+        self._ready = []
+        self._lock = threading.Lock()
+
+    def start(self, block) -&gt; str:
+        # Register task, then run _run() in a daemon thread.
+        ...
+
+    def _run(self, task_id: str, command: str):
+        output, exit_code = _run_bash_process(command)
+        status = &quot;completed&quot; if exit_code == 0 else &quot;failed&quot;
+        with self._lock:
+            self.tasks[task_id][&quot;status&quot;] = status
+            self.results[task_id] = _format_bash_result(output, exit_code)
+            self._ready.append(task_id)
+</code></pre>
+<p>命令以非零状态退出或 worker 抛出异常时，任务会进入 <code>failed</code>。Shell 会在独立的进程组中启动；命令完成、超时，或 Agent 经正常路径、<code>SIGTERM</code> 退出时，运行时会停止原进程组。这只是生命周期清理，并不是沙箱；另建 session 的进程仍可能离开该进程组。</p>
+<h3>collect_background_results: 通知收集</h3>
+<p>后续轮次开始时，<code>collect()</code> 从完成队列中取出结果，并格式化为 <code>&lt;task_notification&gt;</code> 通知：</p>
+<pre><code class="language-python">def collect_background_results() -&gt; list[str]:
+    return BACKGROUND.collect()
+</code></pre>
+<p>通知不复用原始 <code>tool_use_id</code>。原始 tool call 已经用占位 <code>tool_result</code> 回复了；后续收集完成结果时，会用 <code>task_notification</code> 格式把它作为独立事件加入对话。一个 <code>tool_use</code> 仍然只对应一个 <code>tool_result</code>。</p>
+<h3>循环中的集成</h3>
+<p>每次调用 LLM 前，Agent Loop 先收集已经完成的后台结果。<code>execute_tool()</code> 仍然在主线程执行 <code>PreToolUse</code>，然后再选择同步或后台执行：</p>
+<pre><code class="language-python">while True:
+    inject_background_results(messages)
+    response = client.messages.create(...)
+
+def execute_tool(block) -&gt; str:
+    blocked = trigger_hooks(&quot;PreToolUse&quot;, block)
+    if blocked is not None:
+        return str(blocked)
+    if should_run_background(block.name, block.input):
+        task_id = start_background_task(block)
+        output = f&quot;[Background task {task_id} started]&quot;
+    else:
+        output = call_tool(block)
+    trigger_hooks(&quot;PostToolUse&quot;, block, output)
+    return output
+</code></pre>
+<p>慢操作先返回一个带 <code>bg_id</code> 的占位 tool_result。后台结果不会主动唤醒 Agent；下一次进入 Agent Loop 时，<code>inject_background_results()</code> 才会收集已经完成的结果。</p>
+<h3>合起来跑</h3>
+<pre><code>Turn 1:
+  LLM → bash &quot;npm install&quot; (run_in_background=true)
+  → start_background_task → bg_0001
+  → tool_result: &quot;[Background task bg_0001 started]...&quot;
+  → LLM: &quot;OK, I'll check later. Let me also read the config.&quot;
+
+Turn 2:
+  LLM → read_file &quot;package.json&quot; (fast, sync)
+  → tool_result: file content
+
+Turn 3:
+  → collect bg_0001 as &lt;task_notification&gt;
+  → LLM sees: config file + install notification in one message
+</code></pre>
+<p>npm install 在后台运行时，Agent Loop 继续执行了 read_file。</p>
+<hr>
+<h2>本章新增了什么</h2>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>S04 Kernel</th>
+<th>S11</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>执行模型</td>
+<td>全部同步</td>
+<td>慢操作后台线程 + 通知注入</td>
+</tr>
+<tr>
+<td>bash schema</td>
+<td><code>command</code></td>
+<td><code>command</code> + <code>run_in_background</code></td>
+</tr>
+<tr>
+<td>新函数</td>
+<td>—</td>
+<td><code>should_run_background</code>, <code>start_background_task</code>, <code>collect_background_results</code>, <code>inject_background_results</code></td>
+</tr>
+<tr>
+<td>新类型</td>
+<td>—</td>
+<td><code>BackgroundManager</code></td>
+</tr>
+<tr>
+<td>通知格式</td>
+<td>—</td>
+<td><code>&lt;task_notification&gt;</code>（不复用 tool_use_id）</td>
+</tr>
+<tr>
+<td>循环行为</td>
+<td>工具同步执行</td>
+<td>显式后台执行，后续轮次收集完成结果</td>
+</tr>
+<tr>
+<td>工具</td>
+<td>5</td>
+<td>5（bash schema 增加一个参数）</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>试一下</h2>
+<pre><code class="language-sh">cd learn-claude-code
+python s11_background_tasks/code.py
+</code></pre>
+<p>试试这些 prompt：</p>
+<ol>
+<li><code>Run pip list in the background and find all Python files in this directory</code></li>
+<li><code>Run npm install (use run_in_background) and while waiting, read package.json</code></li>
+<li><code>Run a short sleep in the background, then list all Markdown files</code></li>
+</ol>
+<p>观察重点：显式设置 <code>run_in_background</code> 后，命令有没有被送到后台？<code>bg_id</code> 是否返回？后续轮次有没有以 <code>&lt;task_notification&gt;</code> 格式收集完成结果？</p>
+<hr>
+<h2>接下来</h2>
+<p>后台任务解决了"慢操作不阻塞"。但如果想定时做某件事呢？比如"每天早上 9 点跑测试"、"每 5 分钟检查一次服务器状态"。</p>
+<p>s12 Cron Scheduler → 给 Agent 装一个闹钟。</p>
+    <div class="pager"><a class="prev" href="../s10_task_system/index.html">← s10 Task System</a><a class="next" href="../s12_cron_scheduler/index.html">s12 Cron Scheduler →</a></div>
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>
