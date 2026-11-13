@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn Claude Code · Harness</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../index.html">Harness</a>
+  <span class="crumb"><a href="../index.html">课程</a> / Learn Claude Code</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="preface.html"><span class="num">序</span>课程总览</a>
+<a href="s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>Learn Claude Code</h1>
+    <p class="lead">17 章，每章只加一个机制。从 30 行循环到完整 harness。</p>
+    <div class="cards"><a class="card" href="s01_agent_loop/index.html"><span class="card-num">s01</span><span class="card-title">Agent Loop</span><span class="card-desc">一个循环 + bash 就是最小 Agent</span></a><a class="card" href="s02_tool_use/index.html"><span class="card-num">s02</span><span class="card-title">Tool Use</span><span class="card-desc">加一个工具只加一个 handler</span></a><a class="card" href="s03_permission/index.html"><span class="card-num">s03</span><span class="card-title">Permission</span><span class="card-desc">执行前先判断能不能做</span></a><a class="card" href="s04_hooks/index.html"><span class="card-num">s04</span><span class="card-title">Hooks</span><span class="card-desc">挂在循环上，不写进循环里</span></a><a class="card" href="s05_todo_write/index.html"><span class="card-num">s05</span><span class="card-title">TodoWrite</span><span class="card-desc">先列步骤再动手</span></a><a class="card" href="s06_subagent/index.html"><span class="card-num">s06</span><span class="card-title">Subagent</span><span class="card-desc">子任务用全新的 messages</span></a><a class="card" href="s07_skill_loading/index.html"><span class="card-num">s07</span><span class="card-title">Skill Loading</span><span class="card-desc">用到时再加载，不全塞 prompt</span></a><a class="card" href="s08_context_compact/index.html"><span class="card-num">s08</span><span class="card-title">Context Compact</span><span class="card-desc">上下文总会满，要腾地方</span></a><a class="card" href="s09_memory/index.html"><span class="card-num">s09</span><span class="card-title">Memory</span><span class="card-desc">记住该记的，忘掉该忘的</span></a><a class="card" href="s10_task_system/index.html"><span class="card-num">s10</span><span class="card-title">Task System</span><span class="card-desc">任务拆小、排序、持久化</span></a><a class="card" href="s11_background_tasks/index.html"><span class="card-num">s11</span><span class="card-title">Background Tasks</span><span class="card-desc">慢操作丢后台</span></a><a class="card" href="s12_cron_scheduler/index.html"><span class="card-num">s12</span><span class="card-title">Cron Scheduler</span><span class="card-desc">定时触发，不需要人推</span></a><a class="card" href="s13_agent_teams/index.html"><span class="card-num">s13</span><span class="card-title">Agent Teams</span><span class="card-desc">让队友分工协作</span></a><a class="card" href="s14_mcp_plugin/index.html"><span class="card-num">s14</span><span class="card-title">MCP Plugin</span><span class="card-desc">能力不够就插 MCP</span></a><a class="card" href="s15_integrated_harness/index.html"><span class="card-num">s15</span><span class="card-title">整合 Harness</span><span class="card-desc">多种机制，一个循环</span></a><a class="card" href="s16_workflow_runtime/index.html"><span class="card-num">s16</span><span class="card-title">Workflow Runtime</span><span class="card-desc">编排形状固定就写进代码</span></a><a class="card" href="s17_goal_loop/index.html"><span class="card-num">s17</span><span class="card-title">Goal Loop</span><span class="card-desc">目标决定循环什么时候结束</span></a></div>
+    <p class="note">课程内容来自 <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。只收录中文文档与插图。</p>
+
+    <footer class="foot">
+      课程内容来自
+      <a href="https://github.com/shareAI-lab/learn-claude-code" target="_blank" rel="noopener">shareAI-lab/learn-claude-code</a>（MIT）。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>
