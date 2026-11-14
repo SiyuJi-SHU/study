@@ -69,17 +69,28 @@
 
     <h3>s03 · Permission</h3>
     <ul>
-      <li><strong>加了什么</strong>：在"模型决定调工具"和"真正执行"之间插了三道闸门：黑名单 → 规则表 → 问人</li>
-      <li><strong>为什么需要</strong>：工具是通用的——bash 里 ls、rm -rf /、git push 全都塞在同一个工具里。拦的从来不是工具本身，是这一次具体的调用（工具名 + 参数），所以必须在执行前检查，设计 TOOLS 时定不了</li>
-      <li><strong>总结</strong>：三道闸按顺序过，顺序即优先级：①硬编码黑名单（rm -rf /、sudo），直接杀——这是开发者写死的安全底线，用户配置改不掉；②规则表命中则自动放行——用户自己配的"这些别再烦我"名单；③都不命中才问人，循环在终端 y/n 处阻塞，决策权上升到人</li>
-      <li><strong>为什么是三道</strong>：信任分级，目的是别烦人——机器能确定的机器定（该杀的杀、该放的放），只有不确定的才问人。少了黑名单，所有未知都得问人；少了规则表，模型每跑一条 ls 都弹窗。deny 压过 allow 的优先级，就靠闸门的前后顺序实现</li>
-      <li><strong>边界</strong>：拒绝不是把调用悄悄丢掉，而是伪装成 tool_result（"Permission denied."）回流给模型——每个 tool_use 必须有对应的 tool_result，这是协议硬要求，模型也得知道自己被拒了才能换路。对应 Claude Code 的 settings.json 里的 allow / deny / ask</li>
+      <li><strong>加了什么</strong>：在"模型报出 tool_call"和"真正执行"之间，插入一段后端写死的检查流程——三道闸门，按顺序过</li>
+      <li><strong>为什么需要</strong>：工具是通用的。bash 里 ls、rm -rf /、git push 全塞在同一个工具里，拦的从来不是工具本身，而是这一次具体的调用（工具名 + 参数）。所以没法在设计 TOOLS 时定死——总不能给每条命令单独做一个工具</li>
+      <li><strong>闸门一：黑名单</strong>：硬编码的绝对危险名单（rm -rf /、sudo、shutdown）。命中直接杀，不问人。它是开发者写死在代码里的安全底线，用户配置改不掉——就算用户的规则表配错了，这些命令也永远出不了第一道闸</li>
+      <li><strong>闸门二：规则表</strong>：用户自己配的"预先批准"名单，比如"所有 git 只读命令放行"。命中就自动放行，不再弹窗。没有它，模型每跑一条 ls 都要问人，用户会被烦死</li>
+      <li><strong>闸门三：问人</strong>：前两道都不命中——既不明确危险、也没预先批准——循环在这里阻塞，终端弹 y/n，人来拍板。同意则执行，拒绝则走拒绝回流</li>
+      <li><strong>顺序即优先级</strong>：三道闸的先后顺序，就是"deny 压过 allow"的实现。就算合并成一张表，也得另写一套"拒绝条目压过放行条目"的排序逻辑——等于绕一圈把两道闸又造出来。分开，反而最直白</li>
+      <li><strong>拒绝怎么回流</strong>：被拦的调用不是悄悄丢掉。协议硬要求每个 tool_use 必须有对应的 tool_result，所以 harness 会伪造一条 "Permission denied." 的 tool_result 塞回 messages——模型必须知道被拒了，才能换路走</li>
+      <li><strong>对应 Claude Code</strong>：settings.json 里的 permissions.allow / deny / ask 三张列表，就是这三道闸</li>
     </ul>
 
     <h3>s04 · Hooks</h3>
     <ul>
-      <li><strong>加了什么</strong>：</li>
-      <li><strong>总结</strong>：</li>
+      <li><strong>加了什么</strong>：一张 HOOKS 注册表（事件名 → 钩子函数列表）+ 循环里四个固定的事件触发点。循环本体从此不再为任何新功能改动</li>
+      <li><strong>为什么需要</strong>：s03 暴露了病根——权限检查是直接缝在循环里的。以后想要"每次 bash 留日志"、"写完文件自动 git add"，每加一个功能就得往循环里动一次手术，而循环是最核心、一崩全完的代码。s04 把"加功能"从"改循环"变成"往插座上插插头"</li>
+      <li><strong>s04 为止的循环形态</strong>：①用户输入 →【UserPromptSubmit】→ ②全量 messages 发给模型 → ③模型回答 → ④没有 tool_calls 就【Stop】（没人拦则结束）；有则每个调用依次：【PreToolUse】→ ⑤执行工具（TOOL_HANDLERS 查表分发）→【PostToolUse】→ ⑥结果 append 回 messages，回到 ②</li>
+      <li><strong>钩子是什么</strong>：一个普通函数 + 一个注册动作。到点自动被调，拿到现场信息（工具名 + 参数），返回一个决定。循环只负责喊"事件到了"，不关心谁在听、听到之后干什么</li>
+      <li><strong>PreToolUse（执行前）</strong>：三个动作——拦截（跳过执行，伪造 "Permission denied." 回流）、改写（把参数改安全了再执行）、放行。s03 的三道闸门在 s04 里就变成一个 PreToolUse 钩子：功能不变，位置从"焊死在循环里"变成"插在插座上"</li>
+      <li><strong>PostToolUse（执行后）</strong>：记录每次 bash 调用的日志、write_file 之后自动 git add，都是这里的典型住户</li>
+      <li><strong>UserPromptSubmit（用户话音刚落）</strong>：往消息里注入额外上下文（今天日期、项目信息），或过滤敏感内容</li>
+      <li><strong>Stop（语义是反的）</strong>：其他三个钩子是"某事发生时顺便干点什么"；Stop 是"模型说做完了想走"时，钩子可以一票否决——"todo 还没清完，继续干"</li>
+      <li><strong>钩子不是工具</strong>：工具写在 TOOLS 里发给模型看，由模型自己决定调不调；钩子模型完全看不见，由人注册、到点必然执行。模型对钩子没有发言权</li>
+      <li><strong>一句话</strong>：s04 没有新增任何能力，它改变的是能力的挂载方式——从焊死（改循环）到可插拔（注册）。循环从此是冻结的底座，后面十几章的机制尽量都挂在事件点上，不再碰循环本体</li>
     </ul>
 
     <h3>s05 · TodoWrite</h3>
