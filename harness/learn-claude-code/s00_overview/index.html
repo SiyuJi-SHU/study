@@ -52,9 +52,11 @@
     <h3>s01 · Agent Loop</h3>
     <ul>
       <li><strong>加了什么</strong>：一个 while 循环 + 一个 bash 工具，30 行代码</li>
-      <li><strong>总结</strong>：s01 之前你自己就是 loop——复制命令、跑、贴结果。这章把人肉中转写成代码：模型说要执行什么，harness 执行、结果作为 tool_result 贴回 messages，模型不再要工具就退出。模型管决策，harness 管执行。每轮全量重发 messages，还没有任何上下文管理</li>
+      <li><strong>为什么需要</strong>：之前把问题发给模型，它只能输出一段文字就结束——能"说"要执行 ls，但不能真去执行。你得自己跑命令、把结果贴回对话框，每个来回你都在当中间层</li>
+      <li><strong>总结</strong>：s01 把这个人肉中转写成代码。模型每轮回答里如果带 tool_use，循环就替它执行 bash 命令，把输出作为 tool_result 追加回 messages，再全量发给模型；这轮没有 tool_use，说明模型认为任务完成，循环退出</li>
+      <li><strong>messages 是什么</strong>：一个只增不减的列表——用户问题、模型回答、工具结果，全部 append 进去。每轮把完整 messages 全量重发给模型（system prompt 和工具描述也每次都带），模型据此决定下一步</li>
+      <li><strong>边界</strong>：只写了循环本身，没做任何上下文管理，messages 会一直涨到 token 上限</li>
     </ul>
-    <p class="note">注意：不是只发最新一条，是每轮全量重发。tool_calls 是模型这一轮想调的所有工具组成的列表，for 循环逐个执行。</p>
 
     <h3>s02 · Tool Use</h3>
     <ul>
