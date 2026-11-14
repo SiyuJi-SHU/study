@@ -60,8 +60,11 @@
 
     <h3>s02 · Tool Use</h3>
     <ul>
-      <li><strong>加了什么</strong>：</li>
-      <li><strong>总结</strong>：</li>
+      <li><strong>加了什么</strong>：新增 4 个专用文件工具（read_file / write_file / edit_file / glob），加 bash 共 5 个；外加一张 TOOL_HANDLERS 分发字典</li>
+      <li><strong>为什么需要</strong>：只有 bash 时，读文件要 cat、写文件要 echo &gt;、找文件要 find——命令又长又容易错。专用工具参数明确、输出稳定，模型用起来不容易翻车</li>
+      <li><strong>总结</strong>：循环一个字没改，改的只是执行那一行——s01 写死 run_bash，s02 换成按工具名查字典分发（TOOL_HANDLERS[block.name]）。以后加工具，只需要往两张表里各加一条，循环永远不动</li>
+      <li><strong>两张表是什么</strong>：TOOLS（schema：name + description + 参数定义）发给模型，让它知道有什么工具、怎么调；TOOL_HANDLERS（名字 → 实现函数）留在本地，负责真正执行。两拨受众不同，靠 name 对上——接口名给模型看（短、符合训练语料习惯），函数名是本地实现，故意解耦</li>
+      <li><strong>边界</strong>：模型输出的工具名是不可信字符串，查字典本身就是白名单——字典里没有的直接回 "Unknown"，永远不会执行到别的函数。safe_path 还把文件工具锁在工作目录内，路径逃不出去</li>
     </ul>
 
     <h3>s03 · Permission</h3>
