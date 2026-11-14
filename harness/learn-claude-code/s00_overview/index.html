@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s00 全局框架 · Learn Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">课程</a> / <a href="../index.html">Learn Claude Code</a> / s00</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+<a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+<div class="nav-title">Learn Claude Code</div>
+<a href="../preface.html"><span class="num">序</span>课程总览</a>
+<a href="index.html" class="active"><span class="num">s00</span>全局框架</a>
+<a href="../s01_agent_loop/index.html"><span class="num">s01</span>Agent Loop</a>
+<a href="../s02_tool_use/index.html"><span class="num">s02</span>Tool Use</a>
+<a href="../s03_permission/index.html"><span class="num">s03</span>Permission</a>
+<a href="../s04_hooks/index.html"><span class="num">s04</span>Hooks</a>
+<a href="../s05_todo_write/index.html"><span class="num">s05</span>TodoWrite</a>
+<a href="../s06_subagent/index.html"><span class="num">s06</span>Subagent</a>
+<a href="../s07_skill_loading/index.html"><span class="num">s07</span>Skill Loading</a>
+<a href="../s08_context_compact/index.html"><span class="num">s08</span>Context Compact</a>
+<a href="../s09_memory/index.html"><span class="num">s09</span>Memory</a>
+<a href="../s10_task_system/index.html"><span class="num">s10</span>Task System</a>
+<a href="../s11_background_tasks/index.html"><span class="num">s11</span>Background Tasks</a>
+<a href="../s12_cron_scheduler/index.html"><span class="num">s12</span>Cron Scheduler</a>
+<a href="../s13_agent_teams/index.html"><span class="num">s13</span>Agent Teams</a>
+<a href="../s14_mcp_plugin/index.html"><span class="num">s14</span>MCP Plugin</a>
+<a href="../s15_integrated_harness/index.html"><span class="num">s15</span>整合 Harness</a>
+<a href="../s16_workflow_runtime/index.html"><span class="num">s16</span>Workflow Runtime</a>
+<a href="../s17_goal_loop/index.html"><span class="num">s17</span>Goal Loop</a>
+  </nav>
+  <main class="content">
+    <h1>s00: 全局框架</h1>
+    <p class="lead">17 章在模型外面搭了什么。每章只回答三个问题：加了什么、为什么加、代价是什么。</p>
+
+    <h2>一、整张图</h2>
+    <p class="note">待补：s01 → s17 的演进图，每章加一个机制。</p>
+
+    <h2>二、17 章速查</h2>
+    <table>
+      <thead>
+        <tr><th>章</th><th>加了什么</th><th>为什么</th><th>代价</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>s01 Agent Loop</td><td></td><td></td><td></td></tr>
+        <tr><td>s02 Tool Use</td><td></td><td></td><td></td></tr>
+        <tr><td>s03 Permission</td><td></td><td></td><td></td></tr>
+        <tr><td>s04 Hooks</td><td></td><td></td><td></td></tr>
+        <tr><td>s05 TodoWrite</td><td></td><td></td><td></td></tr>
+        <tr><td>s06 Subagent</td><td></td><td></td><td></td></tr>
+        <tr><td>s07 Skill Loading</td><td></td><td></td><td></td></tr>
+        <tr><td>s08 Context Compact</td><td></td><td></td><td></td></tr>
+        <tr><td>s09 Memory</td><td></td><td></td><td></td></tr>
+        <tr><td>s10 Task System</td><td></td><td></td><td></td></tr>
+        <tr><td>s11 Background Tasks</td><td></td><td></td><td></td></tr>
+        <tr><td>s12 Cron Scheduler</td><td></td><td></td><td></td></tr>
+        <tr><td>s13 Agent Teams</td><td></td><td></td><td></td></tr>
+        <tr><td>s14 MCP Plugin</td><td></td><td></td><td></td></tr>
+        <tr><td>s15 整合 Harness</td><td></td><td></td><td></td></tr>
+        <tr><td>s16 Workflow Runtime</td><td></td><td></td><td></td></tr>
+        <tr><td>s17 Goal Loop</td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h2>三、按 harness 五件事归类</h2>
+    <table>
+      <thead>
+        <tr><th>职责</th><th>对应章节</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>喂进去（上下文组装）</td><td></td></tr>
+        <tr><td>跑起来（循环）</td><td></td></tr>
+        <tr><td>管住（权限预算）</td><td></td></tr>
+        <tr><td>存下来（持久化）</td><td></td></tr>
+        <tr><td>验出来（trace 评测）</td><td></td></tr>
+      </tbody>
+    </table>
+
+    <h2>四、我的结论</h2>
+    <p class="note">待补。</p>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>
