@@ -41,7 +41,7 @@
   </nav>
   <main class="content">
     <h1>s00: 全局框架</h1>
-    <p class="lead">17 章在模型外面搭了什么。每章只回答三个问题：加了什么、为什么加、代价是什么。</p>
+    <p class="lead">17 章在模型外面搭了什么。每章只记两件事：加了什么、一句话总结。</p>
 
     <h2>一、整张图</h2>
     <p class="note">待补。</p>
@@ -52,121 +52,104 @@
     <h3>s01 · Agent Loop</h3>
     <ul>
       <li><strong>加了什么</strong>：一个 while 循环，加一个 bash 工具</li>
-      <li><strong>为什么</strong>：模型只能输出"我要执行 ls"这种话，不能真的执行。循环替它执行，把结果贴回去，直到它不再要工具</li>
-      <li><strong>代价</strong>：完全没有上下文管理，messages 只增不减，每轮把全部历史重新发给模型</li>
+      <li><strong>总结</strong>：模型只能输出"我要执行 ls"，循环替它执行、把结果贴回去，直到它不再要工具。每轮全量重发 messages，没有上下文管理</li>
     </ul>
     <p class="note">注意：不是只发最新一条，是每轮全量重发。tool_calls 是模型这一轮想调的所有工具组成的列表，for 循环逐个执行。</p>
 
     <h3>s02 · Tool Use</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s03 · Permission</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s04 · Hooks</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s05 · TodoWrite</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s06 · Subagent</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s07 · Skill Loading</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s08 · Context Compact</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s09 · Memory</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s10 · Task System</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s11 · Background Tasks</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s12 · Cron Scheduler</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s13 · Agent Teams</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s14 · MCP Plugin</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s15 · 整合 Harness</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s16 · Workflow Runtime</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h3>s17 · Goal Loop</h3>
     <ul>
       <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>总结</strong>：</li>
     </ul>
 
     <h2>三、按 harness 五件事归类</h2>
