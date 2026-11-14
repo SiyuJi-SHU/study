@@ -51,10 +51,11 @@
 
     <h3>s01 · Agent Loop</h3>
     <ul>
-      <li><strong>加了什么</strong>：</li>
-      <li><strong>为什么</strong>：</li>
-      <li><strong>代价</strong>：</li>
+      <li><strong>加了什么</strong>：一个 while 循环，加一个 bash 工具</li>
+      <li><strong>为什么</strong>：模型只能输出"我要执行 ls"这种话，不能真的执行。循环替它执行，把结果贴回去，直到它不再要工具</li>
+      <li><strong>代价</strong>：完全没有上下文管理，messages 只增不减，每轮把全部历史重新发给模型</li>
     </ul>
+    <p class="note">注意：不是只发最新一条，是每轮全量重发。tool_calls 是模型这一轮想调的所有工具组成的列表，for 循环逐个执行。</p>
 
     <h3>s02 · Tool Use</h3>
     <ul>
