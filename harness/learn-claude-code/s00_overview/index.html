@@ -117,8 +117,13 @@
 
     <h3>s07 · Skill Loading</h3>
     <ul>
-      <li><strong>加了什么</strong>：</li>
-      <li><strong>总结</strong>：</li>
+      <li><strong>加了什么</strong>：一张启动时扫描的技能目录——每个 SKILL.md 只取 name + description（YAML frontmatter），每技能一行拼进 system prompt；外加一个 load_skill 工具。模型调用 load_skill("code-review")，完整 SKILL.md 作为 tool_result 追加进 messages</li>
+      <li><strong>为什么需要</strong>：知识全塞 system prompt 的问题——s01 定了 system prompt 每轮全量发送，塞进去的文档成本是 ×每轮。你改一个 React 组件，SQL 指南和 API 文档也跟着每轮发：用不上的知识一直在烧 token、挤占留给代码和工具结果的上下文</li>
+      <li><strong>两级设计</strong>：目录进 system prompt（启动时、常驻、每技能一行，便宜）；全文进 tool_result（用到时、只付一次钱）。存在性信息便宜常驻，能力本体按需拉取——网页懒加载的同构</li>
+      <li><strong>图书馆类比</strong>：没人背下馆藏所有书。你手里是卡片目录（书名 + 一句话简介），确定要哪本再去架上取。s07 就是给 agent 发了这张卡片目录</li>
+      <li><strong>和 TOOLS 是同一个思想</strong>：TOOLS 里放工具的 name+description，system prompt 里放技能的 name+description——两处"存在性索引"，模型据此自主决定调工具还是读技能</li>
+      <li><strong>决策权在模型</strong>：加载哪个、什么时候加载，harness 不插手（跟 TodoWrite 一样是模型可见、自主调用的工具）。name 查启动时建好的注册表而非当文件路径——又是白名单模式，模型给的字符串永远不可信</li>
+      <li><strong>不朴素的地方</strong>：机制确实基础（懒加载），但把"学什么"的决策权交给了模型——知识不再由工程师预判焊死在 prompt 里，而是模型看目录自主取用。Claude Code / Trae 的 Skill 机制就是这个原理。上下文经济学四连：s05 对抗 / s06 隔离 / s07 限量进货 / s08 清库存</li>
     </ul>
 
     <h3>s08 · Context Compact</h3>
