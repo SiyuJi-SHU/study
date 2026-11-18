@@ -106,8 +106,13 @@
 
     <h3>s06 · Subagent</h3>
     <ul>
-      <li><strong>加了什么</strong>：</li>
-      <li><strong>总结</strong>：</li>
+      <li><strong>加了什么</strong>：一个叫 task 的工具。对父循环来说它就是个普通 tool call——schema 在 TOOLS 里、走 TOOL_HANDLERS 分发，跟 bash 没任何区别。玄机全在它的 handler 里：别的 handler 几毫秒返回，task 的 handler 却开一个全新 messages[]、跑一整个嵌套 agent loop（s01 循环再实例化一份），跑完只把<strong>最终文本</strong>作为 tool_result 交回父对话</li>
+      <li><strong>为什么需要</strong>：主 agent 追一个调用链要读一堆文件，每次工具结果全 append 进父 messages；调用链理清后这些中间细节就没用了，却永远占着上下文。s05 是对抗（把计划浮上来），s06 是隔离——脏活压根别在主上下文里干</li>
+      <li><strong>外包类比</strong>：父是部门经理，子是实习生。把一件明确的杂活外包出去，实习生翻多少资料、试错多少次你不用看，你桌上只多一页结论——父上下文只进一条结果，几十轮中间过程全挡在外面</li>
+      <li><strong>只隔离消息，不隔离文件系统</strong>：父子共享同一个工作目录、同一个进程，子 agent 写的文件、跑的命令，父全看得见、受影响。隔离的是"聊天记录"，不是"工作区"。反着记：子干的活是真实的，只是唠叨被消音了</li>
+      <li><strong>子工具表里没有 task</strong>：子只拿五个基础工具，唯独不含 task——不能再派孙 agent，委派只允许一层，防无限套娃。另有 30 轮上限兜底，超了就返回"没能在 30 轮内给出答案"</li>
+      <li><strong>权限和钩子是同一套</strong>：子的每次工具调用照样过 s03 的三道闸门、触发 s04 的钩子——外包出去，不等于脱离监管</li>
+      <li><strong>三章对照</strong>：s05 对抗上下文（计划浮上来）/ s06 隔离上下文（脏活去别处干）/ s08 压缩上下文（治本）——同一个战场的三种打法。父循环自始至终不知道 subagent 存在，嵌套循环完全藏在 tool handler 里，循环本体零改动</li>
     </ul>
 
     <h3>s07 · Skill Loading</h3>
