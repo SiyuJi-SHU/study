@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>岗位 JD 与技术栈 · 总管面</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --red:#a53a24; --red-bg:#fbf0ec; --red-bar:#c2583b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 80px}
+
+  .top{position:sticky;top:0;z-index:9;background:var(--bg);padding:10px 0 12px;
+    border-bottom:1px solid var(--line);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+  .back{font-size:12.5px;color:var(--muted);text-decoration:none}
+  .back:hover{color:var(--ink)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:20px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.035)}
+
+  .gh{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+  .gname{font-size:13px;font-weight:700;letter-spacing:.5px}
+
+  ol.jd, ul.jd{margin:0;padding-left:22px}
+  .jd li{font-size:15px;line-height:1.85;margin-bottom:6px;color:#1b1b18}
+
+  .tbl{width:100%;border-collapse:collapse}
+  .tbl td{border-top:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top;font-size:14.5px;line-height:1.75}
+  .tbl tr:first-child td{border-top:none}
+  .tbl td:first-child{white-space:nowrap;font-weight:700;color:var(--red);width:150px}
+
+  .foot{margin-top:26px;font-size:10.5px;color:#a9a59b;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>岗位 JD 与技术栈</h1>
+    <a class="back" href="index.html">‹ 列表</a>
+  </div>
+
+  <div class="card">
+    <div class="gh"><span class="gname">岗位职责（JD 原文）</span></div>
+    <ol class="jd">
+      <li>参与从客户需求到软件产品定义、架构设计、开发实现、商用运营维护等产品生命周期中的工作；</li>
+      <li>解决产品在实现过程中的技术难题，应用前沿技术提升产品的核心竞争力，如分布式系统、性能调优、可靠性、数据库等软件关键技术；</li>
+      <li>负责产品软件、仿真软件等的程序设计、开发和调试，承担与周边模块协同工作，参与完成关键软件模块的需求分析、详细设计文档的编写和维护；</li>
+      <li>负责产品大数据需求分析、方案设计、软件开发，维护升级等。</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="gh"><span class="gname">任职要求（JD 原文）</span></div>
+    <ol class="jd">
+      <li>计算机、电子、通信、自动化或者软件相关专业本科及以上学历；</li>
+      <li>熟练掌握但不限于 C/C++、python、Java 等编程语言中的一种或数种，有良好的编程习惯；</li>
+      <li>熟悉 Qt 应用程序开发框架，熟练掌握 Qt 库及框架（UI 方向）；</li>
+      <li>熟悉大数据相关开源软件，熟悉一种或多种数据库，如 Oracle、MySQL、DB2、Teradata、MongoDB 等，有开源社区代码贡献者优先（大数据方向）；</li>
+      <li>具有数字仿真、算法和系统工程相关背景，具有某工程领域的仿真经验（机电、电磁、光学、流体、热场），有物理仿真以及自研物理引擎或工业软件 / 平台开发测试经验的优先（仿真软件方向）；</li>
+      <li>具备独立工作能力和解决问题的能力、具有较强的学习能力、具备团队意识、善于沟通、乐于合作、勇于接受挑战。</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="gh"><span class="gname">技术栈解释</span></div>
+    <table class="tbl">
+      <tr><td>C / C++</td><td>偏底层的编程语言，运行快、能直接管硬件和内存。设备控制软件、桌面软件大量用它。</td></tr>
+      <tr><td>Python</td><td>语法简单的脚本语言，写得快。常用来做算法验证、数据处理、测试脚本。</td></tr>
+      <tr><td>Java</td><td>企业后端的主流语言，跨平台、生态成熟，适合做大型的业务系统和服务。</td></tr>
+      <tr><td>Qt</td><td>用 C++ 做桌面软件界面的框架。设备上的操作屏、控制软件的窗口，很多是它做的。</td></tr>
+      <tr><td>分布式系统</td><td>多台机器一起干活，外面看着像一台。难在机器会挂、数据要保持一致。</td></tr>
+      <tr><td>性能调优</td><td>找出系统慢在哪，再把它改快。看的是时延（一次要等多久）和吞吐（一秒能处理多少）。</td></tr>
+      <tr><td>可靠性</td><td>系统出了错不崩、能恢复、结果是对的。装备软件直接管着设备，这一条要求很高。</td></tr>
+      <tr><td>数据库</td><td>程序把数据存在这里，方便以后查和改。</td></tr>
+      <tr><td>Oracle</td><td>甲骨文公司的关系型数据库，大型企业用得多。</td></tr>
+      <tr><td>MySQL</td><td>开源的关系型数据库，用得最广，数据是一张张表，用 SQL 查。</td></tr>
+      <tr><td>DB2</td><td>IBM 公司的关系型数据库，银行、大型企业用得多。</td></tr>
+      <tr><td>Teradata</td><td>数据仓库，专门存海量数据，拿来做分析统计。</td></tr>
+      <tr><td>MongoDB</td><td>文档型数据库，一条数据就是一个像 JSON 的文档，表结构可以很灵活。</td></tr>
+      <tr><td>大数据开源软件</td><td>处理超出单机能力的海量数据的开源工具，比如 Hadoop、Spark 这一类。</td></tr>
+      <tr><td>数字仿真</td><td>用软件算出真实世界里物理过程的结果，不用每次都拿真设备试。</td></tr>
+      <tr><td>物理仿真</td><td>同上，重点是按物理规律来算，比如受力、光路、电磁场、流体、发热。</td></tr>
+      <tr><td>物理引擎</td><td>把物理规律写成代码、专门负责计算的程序内核，别的软件调用它来得到仿真结果。</td></tr>
+      <tr><td>工业软件</td><td>给工厂和工程用的软件，比如设计、仿真、控制设备、管理生产。</td></tr>
+      <tr><td>产品生命周期</td><td>一个软件从问客户要什么，到定做什么、怎么设计、写出来、上线商用、后期维护，整个一生。</td></tr>
+      <tr><td>架构设计</td><td>决定一个系统分成哪几块，每块管什么，块和块之间怎么来往。</td></tr>
+      <tr><td>需求分析</td><td>把客户的话变成软件要做哪些事。</td></tr>
+      <tr><td>详细设计文档</td><td>写清楚每个模块具体怎么做，让写代码的人照着做。</td></tr>
+    </table>
+  </div>
+
+  <div class="foot">总管面 · 岗位 JD 与技术栈</div>
+</div>
+</body>
+</html>
