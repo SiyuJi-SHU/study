@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2. 生命周期与 effect · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / Cordis 教程</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html" class="active"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>2. 生命周期与 effect</h1>
+<p>Cordis 插件可能因修改配置、热重载、显式资源释放或所需服务消失而卸载。通过 Cordis API 建立的注册属于 effect，会在所属插件卸载时撤销；在这些 API 之外管理的资源必须包装在 <code>ctx.effect()</code> 中。</p>
+<h2>Effect</h2>
+<p>对于 Cordis 尚未管理的资源，例如定时器、连接或 watcher，应将其包装在 <code>ctx.effect()</code> 中并返回 disposer（资源释放函数）：</p>
+<p>创建 <code>lifecycle.ts</code>，将它放在 <code>tmp/cordis-tutorial</code> 中：</p>
+<pre><code class="language-ts">import type { Context } from &#39;@deepseek-ai/cordis&#39;
+
+export const name = &#39;lifecycle-demo&#39;
+
+function heartbeat(ctx: Context) {
+  console.log(&#39;heartbeat plugin loading&#39;)
+  ctx.effect(() =&gt; {
+    const timer = setInterval(() =&gt; console.log(&#39;tick&#39;), 200)
+    return () =&gt; {
+      clearInterval(timer)
+      console.log(&#39;heartbeat cleaned up&#39;)
+    }
+  })
+}
+
+export function apply(ctx: Context) {
+  // Mount a child plugin and keep its fiber to dispose it later.
+  const fiber = ctx.plugin(heartbeat)
+  // The demo timer is itself an effect: if THIS plugin is unloaded first,
+  // the pending callback is cancelled instead of firing on a dead app.
+  ctx.effect(() =&gt; {
+    const timer = setTimeout(async () =&gt; {
+      await fiber.dispose()
+      console.log(&#39;disposed&#39;)
+      process.exit(0)
+    }, 700)
+    return () =&gt; clearTimeout(timer)
+  })
+}
+</code></pre>
+<p>让 <code>cordis.yml</code> 指向该文件：</p>
+<pre><code class="language-yaml">- name: &#39;./lifecycle.ts&#39;
+</code></pre>
+<p>运行（<code>node --import tsx ../../vendor/cordis/bin.js</code>）后会得到：</p>
+<pre><code>heartbeat plugin loading
+tick
+tick
+tick
+heartbeat cleaned up
+disposed
+</code></pre>
+<p>请留意三点：</p>
+<ul>
+<li><code>ctx.plugin(heartbeat)</code> 会把一个<strong>来自代码</strong>的函数挂载为插件，这与 YAML loader 为每个配置项执行的操作相同。函数插件不需要 <code>apply</code> 方法：Cordis 会直接调用该函数，其名称只用于诊断。只有对象形态才要求 <code>apply</code> 方法，例如 <code>ctx.plugin({ apply(ctx) { /* ... */ } })</code>。调用会返回一个 <strong>fiber</strong>，即一个已加载插件实例的运行时句柄。</li>
+<li>effect 主体在加载期间运行；它返回的 disposer 在卸载期间运行。对于生命周期与插件一致的资源，你绝不需要自行调用 disposer。</li>
+<li><code>fiber.dispose()</code> 会等该插件的所有清理工作（包括异步 disposer）完成后才结束，并递归卸载它挂载的所有子插件。</li>
+</ul>
+<h2>Fiber 状态机</h2>
+<p>每个已加载插件实例都拥有一个 fiber，并在以下状态之间转换：</p>
+<pre><code>PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED
+                 ↘ FAILED
+</code></pre>
+<ul>
+<li><strong>PENDING</strong>：已经声明，但所需服务（第 3 章）尚不可用。</li>
+<li><strong>LOADING / ACTIVE</strong>：<code>apply</code> 正在运行／已经完成。</li>
+<li><strong>FAILED</strong>：<code>apply</code> 或配置校验抛出异常。</li>
+<li><strong>UNLOADING / DISPOSED</strong>：disposer 正在运行／一切均已拆除。</li>
+</ul>
+<p>你会在<a href="../cordis-tutorial/06-composition-and-hmr.html">第 6 章</a>再次遇到 PENDING，它通常就是「为什么我的插件没有输出」的答案。</p>
+<h2>已经属于 effect 的操作</h2>
+<p>你很少需要亲自编写 <code>ctx.effect()</code>，因为内置注册 API 本身已经是 effect：</p>
+<ul>
+<li><code>ctx.on(event, listener)</code>：监听器会在卸载时移除（<a href="../cordis-tutorial/04-events.html">第 4 章</a>）。</li>
+<li><code>ctx.plugin(child)</code>：子插件会随父插件一同 dispose（资源释放）。</li>
+<li>服务注册属于 effect。<code>ctx.tools.register(...)</code> 等 harness 注册表也会把返回的 disposer 附着到调用插件上，因此会自动撤销（<a href="../cordis-tutorial/07-into-the-harness.html">第 7 章</a>）。</li>
+</ul>
+<p>对于 Cordis 不管理的资源，应在 <code>ctx.effect()</code> 内获取它，并返回用于释放资源的 disposer。此后 Cordis 会在卸载期间调用该释放逻辑，热重载时也不例外。</p>
+<p>有一项顺序注意事项：disposer 会按注册顺序的逆序启动，但多个<strong>异步</strong> disposer 会并发运行。如果拆除步骤必须按顺序执行，请把它们放在同一个 disposer 中，并在其中依次等待每步完成。</p>
+<p>下一章：<a href="../cordis-tutorial/03-services.html">服务</a>：插件如何共享功能。</p>
+
+    <div class="pager"><a class="prev" href="../cordis-tutorial/01-first-plugin.html">← 01 第一个插件</a><a class="next" href="../cordis-tutorial/03-services.html">03 服务 →</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

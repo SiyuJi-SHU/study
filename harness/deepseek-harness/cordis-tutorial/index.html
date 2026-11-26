@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cordis 教程 · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / Cordis 教程</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html" class="active"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>Cordis 教程</h1>
+<p>Cordis 是 DeepSeek Harness 底层的插件框架：它是一个小型运行时，其中的每项能力，包括工具、LLM（大语言模型）适配器、文件访问乃至 agent loop（智能体循环）本身，都是挂载到共享上下文中的插件。本教程通过动手实践讲解 Cordis：每一章都是一个可以运行的示例，你将在本仓库内的临时目录中逐步构建它，最后把一个插件接入真实的 harness 服务。</p>
+<p>本教程面向 agent 开发者。你不需要深入掌握 TypeScript；下文的 <a href="#typescript-notes">TypeScript 说明</a>会解释可能陌生的语法，并且每一章都会给出确切命令和预期输出。</p>
+<p>如果你想阅读精简的概念参考，而不是逐步实践，请参阅 <a href="../cordis-primer.html">Cordis 入门</a>。详尽的 API 参考见<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/subsystems/core.zh.md" target="_blank" rel="noopener">子系统页面</a>上生成的 <code>cordis-surface</code> 区块，以及 <a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/cordis-api/context.zh.md" target="_blank" rel="noopener">Cordis 核心 API</a> 页面。</p>
+<p>如果你要为 harness 本身编写插件——由 <code>cordis.yml</code> 加载、在 Web UI 中驱动，而不是下面这个启动器——请从<a href="../basic/index.html">第一个 Harness 插件</a>开始。</p>
+<p><a id="setup"></a></p>
+<h2>准备工作</h2>
+<p>你需要克隆本仓库并安装依赖；<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/development.zh.md#setup-tutorial" target="_blank" rel="noopener">开发指南</a>列出了前置条件。本教程不需要 API 密钥；所有示例均可在无密钥环境中运行。</p>
+<pre><code class="language-sh">git clone https://github.com/deepseek-ai/deepseek-harness.git
+cd deepseek-harness
+pnpm install
+</code></pre>
+<p>创建各章使用的临时目录。<code>tmp/</code> 已被 git 忽略，因此你在其中写入的任何内容都不会进入版本控制：</p>
+<pre><code class="language-sh">mkdir -p tmp/cordis-tutorial
+cd tmp/cordis-tutorial
+</code></pre>
+<p>每一章都从该目录运行同一条命令：</p>
+<pre><code class="language-sh">node --import tsx ../../vendor/cordis/bin.js
+</code></pre>
+<p>这个单文件启动器（见 <a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/vendor/cordis/bin.js" target="_blank" rel="noopener">vendor/cordis/bin.js</a>）会创建根 <code>Context</code>、挂载 Loader 插件，并让它从当前目录加载 <code>./cordis.yml</code>。其余所有内容，包括有哪些插件以及如何配置它们，都来自你稍后将编写的 YAML 文件。<code>--import tsx</code> 标志让 Node 无需构建步骤即可运行配置所指向的 TypeScript 文件。</p>
+<h2>章节</h2>
+<ol>
+<li><a href="../cordis-tutorial/01-first-plugin.html">你的第一个插件</a>：插件是函数，由 loader 挂载。</li>
+<li><a href="../cordis-tutorial/02-lifecycle-and-effects.html">生命周期与 effect</a>：由 Cordis 管理的注册会在所属插件卸载时撤销。</li>
+<li><a href="../cordis-tutorial/03-services.html">服务</a>：在 <code>ctx</code> 上公开一项能力，并通过 <code>inject</code> 依赖它。</li>
+<li><a href="../cordis-tutorial/04-events.html">事件</a>：类型化事件、广播分发和 waterfall（瀑布式事件）的短路行为。</li>
+<li><a href="../cordis-tutorial/05-config.html">配置</a>：读取 <code>cordis.yml</code> 中经过校验的配置，并在输入错误时明确报错。</li>
+<li><a href="../cordis-tutorial/06-composition-and-hmr.html">组合与 HMR（热模块替换）</a>：把配置文件作为插件树，使用热重载，并诊断始终无法加载的插件。</li>
+<li><a href="../cordis-tutorial/07-into-the-harness.html">进入 harness</a>：基于真实的 harness 服务注册一个可由模型调用的工具。</li>
+</ol>
+<p><a id="typescript-notes"></a></p>
+<h2>TypeScript 说明</h2>
+<p>这些示例使用了普通现代 JavaScript 之外的三项 TypeScript 功能：</p>
+<ul>
+<li><strong>类型注解</strong>描述值，但不会改变运行时行为：<code>ctx: Context</code> 表示 <code>ctx</code> 具备 Cordis 上下文 API，<code>who: string</code> 接受文本，而 <code>string[]</code> 表示字符串数组。</li>
+<li><strong><code>import type { Context } from &#39;@deepseek-ai/cordis&#39;</code></strong> 只导入类型信息。它在运行时会消失，因此仅为类型注解使用 <code>Context</code> 的插件文件不会增加运行时依赖。</li>
+<li><strong>声明合并</strong>（<code>declare module &#39;@deepseek-ai/cordis&#39; { ... }</code>）会为 Cordis 已经声明的接口添加你的条目，例如新 <code>ctx.greeter</code> 属性的类型或事件名称。它不会生成任何运行时接线；插件必须另行提供服务或发出事件。第 3 章会完整展示该模式。</li>
+</ul>
+<p>第 5 章还会使用 <code>interface</code> 描述配置对象的字段，并使用 <code>Schema&lt;Config&gt;</code> 这类泛型表示 schema 校验哪些对象字段。你可以直接照写这些声明；周围的正文会解释每项声明连接了什么。</p>
+
+    <div class="pager"><span></span><a class="next" href="../cordis-tutorial/01-first-plugin.html">01 第一个插件 →</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

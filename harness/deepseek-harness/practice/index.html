@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>能力的三种角色设计 · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / 进阶实践</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html" class="active"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>能力的三种角色设计</h1>
+<p>本文分为两部分：先参考三种角色能力模式的概念，再通过高级教程构建一项能力。请先完成<a href="../basic/index.html">基础插件路径</a>和<a href="../framework/service.html">服务教程</a>。</p>
+<h2>概念参考</h2>
+<p>当一项能力足够通用，需要支持可替换的提供方时（例如 Bash 执行），harness 会区分三种角色：<strong>Service Definition</strong>、<strong>Service Provider</strong> 和 <strong>Consumer</strong>。角色需要独立演进或替换时，将它们放入不同包；否则一个包可以承担多个角色。完整能力构成其 seam。任何单一角色都不是 seam。</p>
+<h2>以 Bash 为例</h2>
+<p>以 Bash 执行能力为例：</p>
+<ul>
+<li><strong>Service Definition</strong> (<code>dsh-shell</code>)：定义 Cordis 服务以及 Bash 请求和结果类型</li>
+<li><strong>Service Provider</strong> (<code>dsh-bash-local</code>)：在本地计算机上执行命令</li>
+<li><strong>Consumer</strong> (<code>dsh-tool-bash</code>)：将该能力公开为模型可调用的工具</li>
+</ul>
+<pre><code>┌─────────────┐     ┌──────────────────┐     ┌──────────────┐
+│  dsh-shell   │────▶│  dsh-bash-local  │     │ dsh-tool-bash│
+│(definition) │     │    (provider)     │     │(consumer/tool)│
+└─────────────┘     └──────────────────┘     └──────────────┘
+       ▲                                            │
+       └────────────────────────────────────────────┘
+                    inject: [&#39;shell&#39;]
+</code></pre>
+<h2>拆分的好处</h2>
+<h3>提供方可替换</h3>
+<p>同一个 Service Definition 可以有多个提供方，可通过 <code>cordis.yml</code> 选择：</p>
+<pre><code class="language-yaml"># Local execution
+- name: &#39;@deepseek-ai/dsh-bash-local&#39;
+
+# Replace this row with another package that provides the same service.
+</code></pre>
+<p>更换提供方时，Service Definition 和工具均保持不变。</p>
+<h3>独立演进</h3>
+<ul>
+<li>调用方开始依赖 Service Definition 的约定后，Service Definition 很少改动。</li>
+<li>Service Provider 可以独立优化性能和安全性。</li>
+<li>Consumer 可以调整能力向模型呈现的方式。</li>
+</ul>
+<h3>依赖解耦</h3>
+<ul>
+<li>Service Provider 依赖 Service Definition。</li>
+<li>Consumer 依赖 Service Definition。</li>
+<li>Service Provider 和 Consumer <strong>互不依赖</strong>。</li>
+</ul>
+<p>当前内置系列及其包链接由<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/capability-seams.zh.md" target="_blank" rel="noopener">能力 seam 参考</a>负责。</p>
+<h2>教程：开发三种角色的能力</h2>
+<h3>第一步：编写 Service Definition</h3>
+<pre><code class="language-ts">// packages/my-cap/my-cap/src/index.ts
+import { Service, type Context } from &#39;@deepseek-ai/cordis&#39;
+
+declare module &#39;@deepseek-ai/cordis&#39; {
+  interface Context {
+    myCap: MyCapService
+  }
+}
+
+export abstract class MyCapService extends Service {
+  constructor(ctx: Context) {
+    super(ctx, &#39;myCap&#39;)
+  }
+
+  /** Execute the capability. */
+  abstract execute(request: MyCapRequest): Promise&lt;MyCapResult&gt;
+}
+
+export interface MyCapRequest {
+  input: string
+}
+
+export interface MyCapResult {
+  output: string
+}
+</code></pre>
+<h3>第二步：编写 Service Provider</h3>
+<pre><code class="language-ts">// packages/my-cap/my-cap-local/src/index.ts
+import type { Context } from &#39;@deepseek-ai/cordis&#39;
+import { MyCapService, type MyCapRequest, type MyCapResult } from &#39;@deepseek-ai/dsh-my-cap&#39;
+
+class MyCapLocal extends MyCapService {
+  async execute(request: MyCapRequest): Promise&lt;MyCapResult&gt; {
+    // Local provider behavior.
+    return { output: request.input.toUpperCase() }
+  }
+}
+
+export const name = &#39;my-cap-local&#39;
+
+export function apply(ctx: Context) {
+  ctx.plugin(MyCapLocal)
+}
+</code></pre>
+<h3>第三步：编写消费方</h3>
+<pre><code class="language-ts">// packages/my-cap/tool-my-cap/src/index.ts
+import type { Context } from &#39;@deepseek-ai/cordis&#39;
+import { defineTool } from &#39;@deepseek-ai/dsh-tools&#39;
+
+export const name = &#39;tool-my-cap&#39;
+export const inject = [&#39;tools&#39;, &#39;myCap&#39;]
+
+export function apply(ctx: Context) {
+  ctx.tools.register(defineTool({
+    name: &#39;my_cap&#39;,
+    description: &#39;Execute my capability.&#39;,
+    parameters: {
+      input: { type: &#39;string&#39;, required: true },
+    },
+    output: {
+      schema: { type: &#39;string&#39; },
+      render: (_args, value) =&gt; [{ type: &#39;text&#39;, text: value }],
+    },
+    async execute(args) {
+      const result = await ctx.myCap.execute({ input: args.input })
+      return result.output
+    },
+  }))
+}
+</code></pre>
+<h3>在 cordis.yml 中组合</h3>
+<pre><code class="language-yaml">- name: &#39;@deepseek-ai/dsh-my-cap-local&#39;
+- name: &#39;@deepseek-ai/dsh-tool-my-cap&#39;
+</code></pre>
+<h2>设计要点</h2>
+<ul>
+<li><strong>不要预防性拆分</strong>：只有角色需要独立演进时，才使用不同包。简单的工具插件无需拆分。</li>
+<li><strong>Service Definition 拥有 Request/Result 类型</strong>：Service Provider 和 Consumer 只依赖 Service Definition 包。</li>
+<li><strong>显式优于隐式</strong>：实现应通过显式的 <code>resolve(request): Spec</code> 步骤处理默认值，而不是在 <code>run()</code> 中隐藏 <code>?? default</code>。</li>
+</ul>
+<h2>下一步</h2>
+<ul>
+<li><a href="../practice/llm-adapter.html">LLM（大语言模型）适配器</a>：实现一个 LLM 提供方</li>
+</ul>
+
+    <div class="pager"><span></span><a class="next" href="../practice/llm-adapter.html">LLM 适配器 →</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

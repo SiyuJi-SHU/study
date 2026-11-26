@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python SDK 入门 · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / 使用指南</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html" class="active"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>Python SDK 入门</h1>
+<p>本教程安装已发布的 Python SDK，运行随附的独立极简 profile，并说明如何从自己的程序自定义同一个 <code>dsh</code> profile。</p>
+<h2>前置条件</h2>
+<ul>
+<li>Python 3.10 或更高版本</li>
+<li>Git</li>
+<li>Linux x64、Linux arm64、arm64 上的 macOS 14 或更高版本，或 Windows x64</li>
+<li>DeepSeek 兼容的 API endpoint 与凭据</li>
+<li>隔离的 workspace 与隔离的 Harness home</li>
+</ul>
+<h2>安装 SDK</h2>
+<div>
+<a id="linux-与-macos"></a>
+<a id="windows-powershell"></a>
+</div><p>::: code-group</p>
+<pre><code class="language-sh">git clone https://github.com/deepseek-ai/deepseek-harness.git
+cd deepseek-harness
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install deepseek-harness-sdk
+</code></pre>
+<pre><code class="language-powershell">git clone https://github.com/deepseek-ai/deepseek-harness.git
+Set-Location deepseek-harness
+py -3.10 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install deepseek-harness-sdk
+</code></pre>
+<p>:::</p>
+<p>安装内容包含匹配的原生运行时 wheel 与 <code>dsh</code> 命令。普通 SDK 运行不需要系统 Node.js。需要构建产物的仓库贡献者应使用 <a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/python/development.zh.md" target="_blank" rel="noopener">Python 贡献者工作流</a>。</p>
+<h2>运行检入示例</h2>
+<p>导出凭据；使用兼容代理时再设置 endpoint：</p>
+<div>
+<a id="linux-与-macos-1"></a>
+<a id="windows-powershell-1"></a>
+</div><p>::: code-group</p>
+<pre><code class="language-sh">export DEEPSEEK_API_KEY=sk-your-key-here
+# export DEEPSEEK_BASE_URL=http://127.0.0.1:8000/v1
+</code></pre>
+<pre><code class="language-powershell">$env:DEEPSEEK_API_KEY = &quot;sk-your-key-here&quot;
+# $env:DEEPSEEK_BASE_URL = &quot;http://127.0.0.1:8000/v1&quot;
+</code></pre>
+<p>:::</p>
+<p>使用显式 workspace 与 home 路径运行一个任务：</p>
+<div>
+<a id="linux-与-macos-2"></a>
+<a id="windows-powershell-2"></a>
+</div><p>::: code-group</p>
+<pre><code class="language-sh">python python/sdk/examples/minimal.py \
+  --workspace /absolute/path/to/disposable-workspace \
+  --dsh-home /absolute/path/to/example-dsh-home \
+  --session-id example-001 \
+  &quot;Inspect the repository and fix the failing tests.&quot;
+</code></pre>
+<pre><code class="language-powershell">python python/sdk/examples/minimal.py `
+  --workspace C:\work\disposable-workspace `
+  --dsh-home C:\work\example-dsh-home `
+  --session-id example-001 `
+  &quot;Inspect the repository and fix the failing tests.&quot;
+</code></pre>
+<p>:::</p>
+<p>脚本会打印最终 assistant 响应或所选 profile 提供的命令结果。所选 home 会保存生成的 <code>sdk-minimal</code> profile、已安装插件，以及 <code>sessions/</code> 下的未压缩 JSONL 会话日志。示例与 SDK 绝不会静默读取 <code>~/.dsh</code>。</p>
+<h2>在程序中使用 SDK</h2>
+<pre><code class="language-python">from pathlib import Path
+
+from deepseek_harness import DeepSeekHarness
+
+workspace = Path(&quot;/absolute/path/to/disposable-workspace&quot;).resolve()
+dsh_home = Path(&quot;/absolute/path/to/example-dsh-home&quot;).resolve()
+with DeepSeekHarness(
+    provider=&quot;deepseek-official&quot;,
+    model=&quot;deepseek-v4-flash&quot;,
+    max_tokens=49_152,
+    cwd=str(workspace),
+    dsh_home=str(dsh_home),
+    profile=&quot;sdk-minimal&quot;,
+) as harness:
+    result = harness.run(
+        &quot;Inspect the repository and fix the failing tests.&quot;,
+        session_id=&quot;example-001&quot;,
+    )
+
+print(result.final_response)
+</code></pre>
+<p>SDK 会延迟启动内置的 <code>dsh --profile sdk-minimal</code> 进程，并复用到上下文管理器退出。Profile、其持久 patch、home patch 与任何有序 <code>patches</code> tuple 共同组成应用配置。不存在独立 Python 运行时 bin 或完整配置选项。</p>
+<h2>安装或定义插件</h2>
+<p>需要在该 home 中持久保存依赖与 bundle 层时，使用 <code>dsh plugin</code>：</p>
+<div>
+<a id="linux-与-macos-3"></a>
+<a id="windows-powershell-3"></a>
+</div><p>::: code-group</p>
+<pre><code class="language-sh">export DSH_HOME=/absolute/path/to/example-dsh-home
+dsh --profile sdk-minimal --dump-default-config &gt;/dev/null
+dsh plugin --profile sdk-minimal add file:/absolute/path/to/my-plugin-bundle
+</code></pre>
+<pre><code class="language-powershell">$env:DSH_HOME = &quot;C:\work\example-dsh-home&quot;
+dsh --profile sdk-minimal --dump-default-config | Out-Null
+dsh plugin --profile sdk-minimal add file:C:/work/my-plugin-bundle
+</code></pre>
+<p>:::</p>
+<p>第一个命令初始化随附的独立 profile。第二个命令把包管理转发给 <code>pnpm</code>，然后记录所有导出 <code>dsh.bundle</code> 层的已安装包。只有执行此管理命令时才需要安装 <code>pnpm</code>；启动已安装 SDK 不需要它。持久配置项变更应编辑 <code>$DSH_HOME/profiles/sdk-minimal/cordis.patch.yml</code>；单次启动变更则从 Python 传入 patch 文件。</p>
+<p>另一个 <code>profile</code> 只有包含 <code>@deepseek-ai/dsh-sdk-app</code> 或另一个 JSON-RPC server 配置项时才有效。缺失 server 配置项、无法解析的插件和非法 patch 会在启动时失败，不会回退到其他组合。</p>
+<p><a id="opt-in-to-str_replace_editor"></a></p>
+<h3>显式启用 <code>str_replace_editor</code></h3>
+<p>随附运行时包含 <code>str_replace_editor</code>，但 <code>sdk-minimal</code> 的默认 Cordis tree 不挂载它。要使用该工具，请将以下配置保存为 <code>editor.patch.yml</code>；<code>insert</code> 会添加 editor，并使用已有的文件系统后端：</p>
+<pre><code class="language-yaml">- insert:
+    - id: tool-str-replace-editor
+      name: &#39;@deepseek-ai/dsh-tool-str-replace-editor&#39;
+</code></pre>
+<p>构造 <code>DeepSeekHarness(profile=&quot;sdk-minimal&quot;, ...)</code> 时传入 <code>patches=(&quot;/absolute/path/to/editor.patch.yml&quot;,)</code>，或将 patch 写入 <code>$DSH_HOME/profiles/sdk-minimal/cordis.patch.yml</code> 以持久保存配置。下次运行时启动后，模型请求会在默认工具之外包含 <code>str_replace_editor</code>。本地文件系统后端以运行时工作目录解析相对路径；与极简 shell 一样，它不会将访问限制在该目录内。该 patch 也适用于标准 <code>sdk</code> profile。</p>
+<p><a id="enable-team-mode"></a></p>
+<h3>启用 Team 模式</h3>
+<p>使用 Agent Teams 时选择标准 <code>sdk</code> profile；<code>sdk-minimal</code> 不包含子代理或 Team 服务。将 <a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/apps/cli/config/examples/team-mode.yml" target="_blank" rel="noopener">Team patch</a> 保存为 <code>team-mode.yml</code>：</p>
+<pre><code class="language-yaml">- id: agent-team
+  config:
+    defaultEnabled: true
+</code></pre>
+<p>选择 <code>profile=&quot;sdk&quot;</code>，并在 SDK 的 <code>patches</code> 选项中传入其绝对路径。Python 使用 <code>patches=(&quot;/absolute/path/to/team-mode.yml&quot;,)</code>；TypeScript 使用 <code>patches: [&quot;/absolute/path/to/team-mode.yml&quot;]</code>。此 patch 替换 <code>agent-team</code> 配置项的整个配置，因此自定义 <code>maxTasks</code> 限制也应写在同一个映射中。</p>
+<p>创建新根 Session，让它创建并列出共享任务。首次模型请求即包含 Team 工具和协作提示词。根会话保存其模式，子代理共享该模式。恢复已有 Session 时保留其模式，即使它被明确关闭或从未启用；修改或移除此 patch 不会覆盖已保存的选择。模式和任务语义参见 <a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/packages/team/agent-team/README.zh.md#use-this-package" target="_blank" rel="noopener">Team 服务参考</a>。</p>
+<h2>理解极简 profile</h2>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>系统提示词</td>
+<td><code>DSH_SYSTEM_PROMPT</code>，未设置时为 <code>You are a helpful software engineer assistant.</code></td>
+</tr>
+<tr>
+<td><code>minimal.py</code> 的模型</td>
+<td><code>--model</code>，然后是 <code>DSH_MODEL</code>，最后是 <code>deepseek-v4-flash</code></td>
+</tr>
+<tr>
+<td>面向模型的工具</td>
+<td>Linux／macOS 上的持久 <code>bash</code> 或 Windows 上的 <code>pwsh</code>，以及 <code>read_image</code></td>
+</tr>
+<tr>
+<td>Shell 超时</td>
+<td>300 秒</td>
+</tr>
+<tr>
+<td>可选运行时上下文</td>
+<td>不存在</td>
+</tr>
+<tr>
+<td>上下文压缩</td>
+<td>自动执行；通过额外模型请求生成较早历史的摘要</td>
+</tr>
+<tr>
+<td>会话持久化</td>
+<td><code>&lt;dsh_home&gt;/sessions</code> 下的未压缩 JSONL</td>
+</tr>
+</tbody></table>
+<p>该 profile 的唯一组合包会在空根之上插入完整配置树，且不包含 <code>dsh-base</code>，因此基础 profile 以后新增的工具不会隐式出现。它包含 SDK 协议、一个由环境配置的 DeepSeek 适配器、本地执行与持久化；文本文件工具、settings、托管凭据、OTel 遥测、Web 工具、subagent、本地指令发现均不存在。<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/packages/session/session-log-deepseek/README.zh.md" target="_blank" rel="noopener">DeepSeek 会话日志贡献器</a>默认随 DeepSeek 请求上传未接受的日志事件，每次请求最多 <code>maxBytes</code>（8 MiB）；在 profile patch 中设置 <code>session-log-deepseek.enabled: false</code> 可将其关闭。它固定使用 <code>danger-full-access</code>，因此按平台选择的持久 shell 可以修改运行时可见的任何路径；应使用一次性 checkout 或容器。</p>
+<p>图片读取需要支持图片输入的路由。自动压缩保留完整 Session 日志；模型与存储影响见<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/packages/bundle/sdk-minimal/README.zh.md" target="_blank" rel="noopener">组合包参考</a>。在这个 <code>sdk-minimal</code> 组合中，不支持的斜杠输入保持为普通提示词文本。</p>
+<p>已安装 wheel 仍会打包完整 <code>web</code> profile 与前端产物。如果 Python SDK 部署还需要浏览器应用，请针对显式 <code>DSH_HOME</code> 运行 <code>dsh web</code>；<code>web</code> 是独立 CLI 应用，不能为 Python SDK client 提供服务。</p>
+<p>需要隔离 profile、插件、凭据、设置与会话时，应使用新的 home。独立工作应使用新的 session id；只有继续同一段持久对话和会话资源时，才同时复用 harness、home 与 id。</p>
+<p><a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/packages/bundle/sdk-minimal/README.zh.md" target="_blank" rel="noopener">组合包参考</a>定义确切配置树，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/python/sdk/examples/README.zh.md" target="_blank" rel="noopener">示例参考</a>定义可运行程序。<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/python/sdk/README.zh.md" target="_blank" rel="noopener">Python SDK 参考</a>介绍生命周期、结果、通知与底层行为；<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/apps/cli/reference/README.zh.md" target="_blank" rel="noopener">dsh CLI 参考</a>介绍 profile 分层。</p>
+
+    <div class="pager"><a class="prev" href="../guide/plugin-market.html">← 插件市场</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1. 编写第一个插件 · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / Cordis 教程</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html" class="active"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>1. 编写第一个插件</h1>
+<p>在本教程使用的 loader 配置中，Cordis 插件模块通过命名导出提供 <code>apply</code> 函数。Cordis 加载模块时，会用一个 <strong>上下文</strong> 调用 <code>apply</code>；该上下文就是 <code>ctx</code> 对象，插件通过它注册自己贡献的所有内容。</p>
+<h2>编写插件</h2>
+<p>在 <code>tmp/cordis-tutorial</code> 目录中（参见<a href="../cordis-tutorial/index.html#setup">环境设置</a>）创建 <code>hello.ts</code>：</p>
+<pre><code class="language-ts">import type { Context } from &#39;@deepseek-ai/cordis&#39;
+
+export const name = &#39;hello&#39;
+
+export function apply(ctx: Context) {
+  console.log(&#39;hello from my first plugin&#39;)
+}
+</code></pre>
+<p><code>name</code> 导出项是可选的显示元数据；它用于在诊断信息中标识插件。</p>
+<h2>组合应用</h2>
+<p>本教程的启动器通过配置组装应用。创建 <code>cordis.yml</code>：</p>
+<pre><code class="language-yaml">- name: &#39;./hello.ts&#39;
+</code></pre>
+<p>该文件是一组 Cordis 配置项的列表。<code>name</code> 是模块指定符，可以是相对路径或 NPM 包名；loader 会挂载每个配置项。各项会并发启动，因此它们在列表中的位置不保证插件的加载先后；顺序由服务依赖（<code>inject</code>，参见<a href="../cordis-tutorial/03-services.html">第 3 章</a>）决定，而非文件中的位置。</p>
+<h2>运行</h2>
+<pre><code class="language-sh">node --import tsx ../../vendor/cordis/bin.js
+</code></pre>
+<p>预期输出：</p>
+<pre><code>hello from my first plugin
+</code></pre>
+<p>当没有任何内容继续运行时，进程会自行退出。具体过程如下：</p>
+<ol>
+<li>启动器创建根 <code>Context</code>，并挂载 <strong>Loader</strong> 插件。</li>
+<li>Loader 读取 <code>cordis.yml</code>，解析 <code>./hello.ts</code>，然后将其作为子插件挂载。</li>
+<li>Cordis 调用你的 <code>apply(ctx)</code>。</li>
+</ol>
+<p>你的文件中没有框架启动代码：插件描述自己的贡献，<code>cordis.yml</code> 则组合应用。例如，<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/packages/bundle/base/cordis.patch.yml" target="_blank" rel="noopener"><code>dsh</code> base</a> 就是一份更长的插件组合，由部署 overlay 对它进行修补。</p>
+<h2>其他两种插件形态</h2>
+<p>函数是最常见的形式，但 Cordis 接受三种形式：</p>
+<pre><code class="language-ts">import { Service, type Context } from &#39;@deepseek-ai/cordis&#39;
+
+// 1. Function plugin (what you just wrote).
+export function apply(ctx: Context) {}
+
+// 2. Object plugin: an object with an `apply` method.
+export const objectPlugin = {
+  name: &#39;object-plugin&#39;,
+  apply(ctx: Context) {},
+}
+
+// 3. Class plugin: a Service subclass (covered in chapter 3).
+export class MyService extends Service {
+  constructor(ctx: Context) {
+    super(ctx, &#39;myTutorialService&#39;)
+  }
+}
+</code></pre>
+<p>在你需要公开服务之前，请一直使用函数形态；<a href="../cordis-tutorial/03-services.html">第 3 章</a>介绍了何时应当使用类形态。</p>
+<h2>尝试制造错误</h2>
+<p>让 <code>apply</code> 抛出异常：</p>
+<pre><code class="language-ts">export function apply(ctx: Context) {
+  throw new Error(&#39;apply exploded&#39;)
+}
+</code></pre>
+<p>再次运行：进程会因该错误而终止。插件加载失败会明确报错，不会仅跳过该配置项。</p>
+<p>还需要尽早了解一个例外：如果某个配置项的模块无法被 <strong>解析</strong>，例如路径或包名拼写错误，Cordis 会通过 logger 服务报告错误，而不会使进程崩溃。在启动阶段，这条报告可能在 console 导出器开始观察之前丢失。如果新增配置项似乎没有任何效果，请先检查拼写。</p>
+<p>下一章：<a href="../cordis-tutorial/02-lifecycle-and-effects.html">生命周期与 effect</a>：插件卸载时会发生什么。</p>
+
+    <div class="pager"><a class="prev" href="../cordis-tutorial/index.html">← 教程总览</a><a class="next" href="../cordis-tutorial/02-lifecycle-and-effects.html">02 生命周期与 effect →</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

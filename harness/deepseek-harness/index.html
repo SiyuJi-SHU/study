@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeek Harness · DeepSeek Harness</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../index.html">Harness</a>
+  <span class="crumb"><a href="../index.html">课程</a> / DeepSeek Harness</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="/index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="/cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="/architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="/cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="/cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="/cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="/cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="/cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="/cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="/cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="/cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="/basic/index.html"><span class="num">00</span>开始</a>
+    <a href="/basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="/basic/config.html"><span class="num">00</span>配置</a>
+    <a href="/basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="/framework/index.html"><span class="num">00</span>概览</a>
+    <a href="/framework/events.html"><span class="num">00</span>事件</a>
+    <a href="/framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="/practice/index.html"><span class="num">00</span>概览</a>
+    <a href="/practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="/practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="/guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="/guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="/guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="/guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>DeepSeek Harness</h1>
+    <p class="lead">DeepSeek 官方开源的 Agent Harness，一切皆插件。这里是它官方文档的中文镜像，按课程顺序排好。</p>
+        <h2>总览</h2>
+    <div class="cards"><a class="card" href="cordis-primer.html"><span class="card-num">DS</span><span class="card-title">Cordis 入门</span><span class="card-desc">精简概念参考</span></a><a class="card" href="architecture.html"><span class="card-num">DS</span><span class="card-title">DeepSeek Harness 架构</span><span class="card-desc">组成、核心包、循环、扩展点</span></a></div>
+    <h2>Cordis 教程</h2>
+    <div class="cards"><a class="card" href="cordis-tutorial/index.html"><span class="card-num">DS</span><span class="card-title">Cordis 教程</span><span class="card-desc">每章一个可运行示例，不需要 key</span></a><a class="card" href="cordis-tutorial/01-first-plugin.html"><span class="card-num">01</span><span class="card-title">1. 编写第一个插件</span><span class="card-desc">插件是函数，由 loader 挂载</span></a><a class="card" href="cordis-tutorial/02-lifecycle-and-effects.html"><span class="card-num">02</span><span class="card-title">2. 生命周期与 effect</span><span class="card-desc">插件卸载时注册会被撤销</span></a><a class="card" href="cordis-tutorial/03-services.html"><span class="card-num">03</span><span class="card-title">3. 服务</span><span class="card-desc">在 ctx 上公开能力，用 inject 依赖</span></a><a class="card" href="cordis-tutorial/04-events.html"><span class="card-num">04</span><span class="card-title">4. 事件</span><span class="card-desc">类型化事件、广播、waterfall</span></a><a class="card" href="cordis-tutorial/05-config.html"><span class="card-num">05</span><span class="card-title">5. 配置</span><span class="card-desc">读取 cordis.yml 并校验</span></a><a class="card" href="cordis-tutorial/06-composition-and-hmr.html"><span class="card-num">06</span><span class="card-title">6. 组合与 HMR（热模块替换）</span><span class="card-desc">配置文件就是插件树</span></a><a class="card" href="cordis-tutorial/07-into-the-harness.html"><span class="card-num">07</span><span class="card-title">7. 进入 harness</span><span class="card-desc">注册模型可调用的工具</span></a></div>
+    <h2>第一个 Harness 插件</h2>
+    <div class="cards"><a class="card" href="basic/index.html"><span class="card-num">DS</span><span class="card-title">第一个插件</span><span class="card-desc">写第一个能在 Web UI 里跑的插件</span></a><a class="card" href="basic/tool.html"><span class="card-num">DS</span><span class="card-title">开发一个工具</span><span class="card-desc">给 harness 加一个工具</span></a><a class="card" href="basic/config.html"><span class="card-num">DS</span><span class="card-title">插件配置</span><span class="card-desc">插件怎么读配置</span></a><a class="card" href="basic/publish.html"><span class="card-num">DS</span><span class="card-title">打包与安装插件</span><span class="card-desc">把插件发出去</span></a></div>
+    <h2>插件框架</h2>
+    <div class="cards"><a class="card" href="framework/index.html"><span class="card-num">DS</span><span class="card-title">插件与生命周期</span><span class="card-desc">框架层有什么</span></a><a class="card" href="framework/events.html"><span class="card-num">DS</span><span class="card-title">事件系统</span><span class="card-desc">会话与循环事件</span></a><a class="card" href="framework/service.html"><span class="card-num">DS</span><span class="card-title">服务与依赖</span><span class="card-desc">服务怎么定义和使用</span></a></div>
+    <h2>进阶实践</h2>
+    <div class="cards"><a class="card" href="practice/index.html"><span class="card-num">DS</span><span class="card-title">能力的三种角色设计</span><span class="card-desc">进阶篇有什么</span></a><a class="card" href="practice/llm-adapter.html"><span class="card-num">DS</span><span class="card-title">LLM 适配器</span><span class="card-desc">接一个新的模型提供方</span></a><a class="card" href="practice/dynamic-cordis.html"><span class="card-num">DS</span><span class="card-title">通过提示词配置持久化插件</span><span class="card-desc">运行时组合</span></a></div>
+    <h2>使用指南</h2>
+    <div class="cards"><a class="card" href="guide/index.html"><span class="card-num">DS</span><span class="card-title">使用 Web UI</span><span class="card-desc">使用侧的文档入口</span></a><a class="card" href="guide/providers.html"><span class="card-num">DS</span><span class="card-title">配置模型</span><span class="card-desc">怎么接模型</span></a><a class="card" href="guide/plugin-market.html"><span class="card-num">DS</span><span class="card-title">插件索引</span><span class="card-desc">装别人的插件</span></a><a class="card" href="guide/python-sdk.html"><span class="card-num">DS</span><span class="card-title">Python SDK 入门</span><span class="card-desc">用 Python 调 harness</span></a></div>
+
+    <p class="note">它不是教学项目，是产品文档。想系统学，从 Cordis 教程 01 开始，每章都能离线跑。</p>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

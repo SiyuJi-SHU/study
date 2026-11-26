@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5. 配置 · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / Cordis 教程</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html" class="active"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>5. 配置</h1>
+<p><code>cordis.yml</code> 中的每个 Cordis 配置项都可以携带 <code>config</code> 块，插件则声明一个 schema，在运行 <code>apply</code> 前验证该块。错误配置会导致加载失败，并给出准确的错误：插件绝不会在配置不完整时启动。</p>
+<h2>可配置插件</h2>
+<p>创建 <code>config-demo.ts</code>，并将其放在 <code>tmp/cordis-tutorial</code> 中：</p>
+<pre><code class="language-ts">import type { Context } from &#39;@deepseek-ai/cordis&#39;
+import Schema from &#39;@deepseek-ai/schemastery&#39;
+
+export const name = &#39;config-demo&#39;
+
+export interface Config {
+  greeting: string
+  targets: string[]
+}
+
+export const Config: Schema&lt;Config&gt; = Schema.object({
+  greeting: Schema.string().default(&#39;Hello&#39;),
+  targets: Schema.array(String).default([&#39;world&#39;]),
+})
+
+export function apply(ctx: Context, config: Config) {
+  for (const target of config.targets) {
+    console.log(`${config.greeting}, ${target}!`)
+  }
+}
+</code></pre>
+<p>导出的 <code>Config</code> 既是 TypeScript 接口，也是同名的运行时 schema：消费方获得类型，Cordis 获得验证器。本仓库使用 <a href="https://github.com/shigma/schemastery" target="_blank" rel="noopener">Schemastery</a> 定义 schema；Cordis 本身接受任意 <a href="https://standardschema.dev/" target="_blank" rel="noopener">Standard Schema</a> 验证器，因此将普通对象导出为 <code>Config</code> 无法工作。</p>
+<p>对其进行配置：</p>
+<pre><code class="language-yaml">- name: &#39;./config-demo.ts&#39;
+  config:
+    targets: [&#39;alpha&#39;, &#39;beta&#39;]
+</code></pre>
+<p>运行：</p>
+<pre><code>Hello, alpha!
+Hello, beta!
+</code></pre>
+<p>未提供 <code>greeting</code>，因此 schema 默认值会将其补齐：<code>apply</code> 始终会收到完整且经过验证的配置。</p>
+<h2>明确报错</h2>
+<p>现在向它传入无效内容：</p>
+<pre><code class="language-yaml">- name: &#39;./config-demo.ts&#39;
+  config:
+    targets: &#39;not-an-array&#39;
+</code></pre>
+<pre><code>ValidationError: invalid config:
+  - $.targets expected array but got not-an-array (at targets)
+</code></pre>
+<p>插件的 fiber 进入 FAILED 状态，本教程的启动器打印错误后以状态码 1 退出。如果某个插件的配置通过了 schema 验证，但其中指定的资源或提供方不可用，该插件也应当在能解析该引用时立即拒绝。</p>
+<p><a id="volatile-fields"></a></p>
+<h2>Volatile 字段</h2>
+<p>对于插件在每次操作中读取的字段，可以使用 <code>.volatile()</code>。字段变化会更新稳定引用，无需重新挂载插件。通过 <code>.get()</code> 读取：</p>
+<pre><code class="language-ts">import type { Context } from &#39;@deepseek-ai/cordis&#39;
+import type {} from &#39;@deepseek-ai/cordis-plugin-loader&#39;
+import Schema from &#39;@deepseek-ai/schemastery&#39;
+
+export const Config = Schema.object({
+  greeting: Schema.string().default(&#39;Hello&#39;).volatile(),
+})
+
+export function apply(ctx: Context, config: ReturnType&lt;typeof Config&gt;) {
+  ctx.on(&#39;loader/volatile-update&#39;, () =&gt; {
+    console.log(config.greeting.get())
+  })
+}
+</code></pre>
+<p>直接调用 <code>Config(raw)</code> 也会返回引用。没有默认值的可选字段仍然具有引用；字段缺省时，<code>.get()</code> 返回 <code>undefined</code>。可以保存引用，也可以在单次操作中保存读取值，包括跨越 <code>await</code>，但不能将该值用于后续操作。对象和数组值是脱离输入、递归冻结的普通数据快照；函数、类实例和循环引用会被拒绝。</p>
+<p>Loader 比较原始配置时忽略 schema 声明的 volatile 字段。仅 volatile 变化会经目标插件的 <code>internal/config</code> 钩子解析并校验；当所有普通字段的有效值仍然一致时，Loader 把新值提交到运行中的引用，并向所属实例发出一次 <code>loader/volatile-update</code>，参数是以键数组表示的变化路径，不进入目标插件的 <code>internal/update</code>。等值更新不通知。无效候选会记录日志，运行中的引用保持不变，直到下次激活。普通字段有效值变化（包括表达式求值结果变化）以及普通字段同时变化时沿用原更新流程，旧引用不更新也不接收通知。Group/Include 仍分发子条目更新。直接 <code>fiber.update()</code>、代码替换和依赖替换保留原有生命周期；<code>noSave</code> 仍控制直接更新的持久化。通知使用普通 <code>emit</code>，不等待资源重新配置完成。</p>
+<p>在固定对象路径上声明 volatile 字段，或将整个对象、数组标记为 volatile。数组、字典、union 或 intersect 分支、lazy、transform 或另一个 volatile 值内部的独立引用会被拒绝。配置文件保存普通值；<code>simplify()</code> 会解包引用。序列化 schema 保留字段类型、默认值、角色和 volatile 标记，供基于 schema 的表单使用。现有 settings 消费者继续使用原有 settings 接口。</p>
+<h2>计算得到的配置值</h2>
+<p>本仓库使用的 loader 支持 <code>!!js</code> 标签，用于必须在加载时计算的配置值：</p>
+<pre><code class="language-yaml">- name: &#39;./config-demo.ts&#39;
+  config:
+    greeting: !!js process.env.DEMO_GREETING ?? &#39;Hello&#39;
+</code></pre>
+<p><code>!!js</code> 仅在 <code>config</code> 与条目 <code>disabled</code> 字段内有效。<code>disabled: !!js ...</code> 在每次挂载决策时基于 loader 上下文求值（本仓库的扩展），可以按平台或环境门控一行；其余元数据（<code>name</code>、<code>id</code>、<code>inject</code> 等）保持静态，其中的表达式是普通真值数据。详见 <a href="../cordis-primer.html#loader-configuration">loader 配置</a>。</p>
+<p>下一章：<a href="../cordis-tutorial/06-composition-and-hmr.html">组合与 HMR（热模块替换）</a>：将 <code>cordis.yml</code> 视为应用。</p>
+
+    <div class="pager"><a class="prev" href="../cordis-tutorial/04-events.html">← 04 事件</a><a class="next" href="../cordis-tutorial/06-composition-and-hmr.html">06 组合与 HMR →</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

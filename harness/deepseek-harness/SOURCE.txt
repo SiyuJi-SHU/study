@@ -1,0 +1,5 @@
+来源: https://github.com/deepseek-ai/deepseek-harness
+提交: 4b399c39a6d1479cd84ca591b4d7c88e24d38a96
+版本: 0.2.3-alpha.2
+许可: MIT (Copyright (c) 2026 DeepSeek)
+说明: 中文文档镜像，未改动内容；未收录的文档链接指向 GitHub。

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>事件系统 · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / 插件框架</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html" class="active"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>事件系统</h1>
+<p>事件是 Cordis 插件间通信的核心机制。Harness 大量使用事件来实现松耦合的扩展点。</p>
+<h2>基本用法</h2>
+<h3>监听事件</h3>
+<pre><code class="language-ts">ctx.on(&#39;event-name&#39;, (payload) =&gt; {
+  // Handle the event.
+})
+</code></pre>
+<h3>触发事件</h3>
+<pre><code class="language-ts">ctx.emit(&#39;event-name&#39;, payload)
+</code></pre>
+<h2>事件模式</h2>
+<p>Cordis 提供多种事件模式，适用于不同的交互契约：</p>
+<h3>emit — 广播</h3>
+<p>所有监听器同步执行，返回值会被忽略：</p>
+<pre><code class="language-ts">// Emit
+ctx.emit(&#39;my-plugin/ready&#39;, { id: &#39;worker-1&#39; })
+
+// Listen
+ctx.on(&#39;my-plugin/ready&#39;, ({ id }) =&gt; {
+  console.log(`${id} is ready`)
+})
+</code></pre>
+<h3>bail — 短路</h3>
+<p>监听器按顺序运行，第一个不是 <code>null</code>、<code>false</code> 或 <code>undefined</code> 的返回值会成为最终结果：</p>
+<pre><code class="language-ts">// Dispatch
+const result = ctx.bail(&#39;some-check&#39;, input)
+
+// Listen: a returned value stops later listeners.
+ctx.on(&#39;some-check&#39;, (input) =&gt; {
+  if (shouldBlock(input)) return &#39;blocked&#39;
+  // Return null, false, or undefined to continue to the next listener.
+})
+</code></pre>
+<h3>serial — 顺序执行</h3>
+<p>监听器按注册顺序依次执行，并等待异步结果；第一个不是 <code>null</code>、<code>false</code> 或 <code>undefined</code> 的返回值会终止后续执行：</p>
+<pre><code class="language-ts">await ctx.serial(&#39;setup-phase&#39;, context)
+</code></pre>
+<h3>waterfall（瀑布式事件）— 流水线</h3>
+<p>每个监听器可以包装下游返回值，形成处理链。<strong>必须调用 <code>next()</code> 传递给下游</strong>，不调用即会短路流水线：</p>
+<pre><code class="language-ts">// Dispatch
+const output = await ctx.waterfall(&#39;my-plugin/transform&#39;, input, async () =&gt; input)
+
+// Listen: next() is mandatory.
+ctx.on(&#39;my-plugin/transform&#39;, async (_input, next) =&gt; {
+  const downstream = await next()
+  return downstream.trim()
+})
+</code></pre>
+<p>::: warning
+waterfall 监听器<strong>必须调用 <code>next()</code></strong>。不调用 <code>next</code> 会短路整个流水线，这是故意为之的设计——用于实现拦截/网关逻辑。
+:::</p>
+<h2>类型安全的事件</h2>
+<p>Harness 使用 TypeScript 声明合并来为事件提供类型安全：</p>
+<pre><code class="language-ts">import &#39;@deepseek-ai/cordis&#39;
+
+declare module &#39;@deepseek-ai/cordis&#39; {
+  interface Events {
+    &#39;my-plugin/ready&#39;: (payload: { id: string }) =&gt; void
+    &#39;my-plugin/check&#39;: (input: string) =&gt; boolean | undefined
+    &#39;my-plugin/transform&#39;: (input: string, next: () =&gt; Promise&lt;string&gt;) =&gt; Promise&lt;string&gt;
+  }
+}
+
+// ctx.on(&#39;my-plugin/ready&#39;, ...) and ctx.emit(&#39;my-plugin/ready&#39;, ...)
+// are now inferred correctly.
+</code></pre>
+<h2>Cordis 事件与会话记录</h2>
+<p>Harness 的 Cordis 事件遵循 <code>namespace/action</code> 命名，例如 <code>agent/pre-step</code>、<code>agent/request-error</code>、<code>tools/result</code> 和 <code>session/event</code>。完整签名与触发模式见<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/subsystems/core.zh.md" target="_blank" rel="noopener">子系统页面</a>上生成的 <code>cordis-surface</code> 区块。</p>
+<p><code>turn/*</code>、<code>step/*</code>、<code>tool/call</code>、<code>tool/result</code> 和 <code>compaction/*</code> 是持久化的会话事件类型，不是同名 Cordis 事件。需要观察它们时，监听 <code>session/event</code> 并检查 <code>event.type</code>。</p>
+<h2>事件监听器也是效果</h2>
+<p>通过 <code>ctx.on()</code> 注册的监听器会在插件卸载时自动移除：</p>
+<pre><code class="language-ts">export function apply(ctx: Context) {
+  // This listener is removed when the plugin disposes.
+  ctx.on(&#39;tools/result&#39;, handler)
+}
+</code></pre>
+<h2>示例：日志插件</h2>
+<p>这个插件记录工具调用和工具结果：</p>
+<pre><code class="language-ts">import type { Context } from &#39;@deepseek-ai/cordis&#39;
+import &#39;@deepseek-ai/dsh-tools&#39;
+
+export const name = &#39;tool-logger&#39;
+
+export function apply(ctx: Context) {
+  ctx.on(&#39;tools/result&#39;, (exec, result) =&gt; {
+    console.log(`[tool] ${exec.name}(${JSON.stringify(exec.arguments)})`)
+    const text = result.content
+      .map(block =&gt; block.type === &#39;text&#39; ? block.text : &#39;&#39;)
+      .join(&#39;&#39;)
+    console.log(`[tool result] ${text.slice(0, 100)}`)
+  })
+}
+</code></pre>
+<h2>下一步</h2>
+<ul>
+<li><a href="../practice/index.html">能力分层</a> — 了解能力接口中的事件</li>
+<li><a href="../practice/llm-adapter.html">LLM（大语言模型）适配器</a> — 实现一个完整的 LLM 后端</li>
+</ul>
+
+    <div class="pager"><a class="prev" href="../framework/index.html">← 概览</a><a class="next" href="../framework/service.html">服务 →</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>插件配置 · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / 第一个 Harness 插件</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html" class="active"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>插件配置</h1>
+<p>让你的插件接受用户在 <code>cordis.yml</code> 中传入的配置。</p>
+<h2>定义 Config 类型</h2>
+<p>在插件中导出一个 <code>Config</code> 类型和同名的 Schemastery schema；默认值直接写在 schema 中：</p>
+<pre><code class="language-ts">import type { Context } from &#39;@deepseek-ai/cordis&#39;
+import Schema from &#39;@deepseek-ai/schemastery&#39;
+
+export const name = &#39;my-plugin&#39;
+
+export interface Config {
+  greeting: string
+  maxRetries: number
+  verbose?: boolean
+}
+
+export const Config: Schema&lt;Config&gt; = Schema.object({
+  greeting: Schema.string().default(&#39;Hello&#39;),
+  maxRetries: Schema.number().default(3),
+  verbose: Schema.boolean().default(false),
+})
+
+export function apply(ctx: Context, config: Config) {
+  console.log(config.greeting)  // User value or schema default.
+}
+</code></pre>
+<p>在 <code>scratch-plugin/cordis.yml</code> 新插入的本地插件行中添加配置：</p>
+<pre><code class="language-yaml">- insert:
+    - id: hello
+      name: &#39;./src/my-plugin.ts&#39;
+      config:
+        greeting: &#39;Hi there&#39;
+        maxRetries: 5
+</code></pre>
+<p>插件加载时，Cordis 会通过导出的 schema 校验配置，并填充未提供字段的默认值。不要导出普通对象作为 <code>Config</code>，因为它不满足 Cordis 要求的 Standard Schema 接口。</p>
+<h2>Schema 校验</h2>
+<p>对于需要严格校验的场景，使用 Schemastery 定义 schema：</p>
+<pre><code class="language-ts">import type { Context } from &#39;@deepseek-ai/cordis&#39;
+import Schema from &#39;@deepseek-ai/schemastery&#39;
+
+export const name = &#39;validated-plugin&#39;
+
+export interface Config {
+  apiKey: string
+  timeout: number
+  mode: &#39;fast&#39; | &#39;accurate&#39;
+}
+
+export const Config = Schema.object({
+  apiKey: Schema.string().required(),
+  timeout: Schema.number().default(30000),
+  mode: Schema.union([&#39;fast&#39;, &#39;accurate&#39;]).default(&#39;fast&#39;),
+})
+
+export function apply(ctx: Context, config: Config) {
+  // config is validated and type-safe.
+}
+</code></pre>
+<p>Schema 在插件加载时执行校验。如果配置不合法，插件会加载失败并给出明确错误信息。</p>
+<h2>设计原则</h2>
+<h3>无硬编码可调参数</h3>
+<p>Harness 的约定：<strong>凡是不同部署可能需要采用不同值的参数，都必须定义为配置字段</strong>。</p>
+<pre><code class="language-ts">// Wrong: hardcoded timeout.
+const TIMEOUT = 30000
+
+// Correct: configurable.
+export interface Config {
+  timeoutMs: number  // Defaults to 30000.
+}
+</code></pre>
+<p>检验标准：能否在 <code>cordis.yml</code> 中改变这个值，而不需要修改代码？</p>
+<h3>配置错误要响亮</h3>
+<p>在 schema 中表达自身完备的约束，使无效配置在插件加载时失败。对服务或已注册资源的引用需要依赖注入；<a href="../framework/service.html">服务教程</a> 会介绍这项约定。</p>
+<h2>配合 HMR</h2>
+<p>配置变更会触发插件热替换：修改 <code>cordis.yml</code> 中某个插件的 <code>config</code> 后，框架会卸载旧实例并加载新实例。由于注册都属于 effect 并会自动清理，替换后不会保留旧实例的注册。</p>
+<h2>下一步</h2>
+<ul>
+<li><a href="../basic/publish.html">打包与安装插件</a> — 把插件以可安装包的形式交付</li>
+<li><a href="../framework/index.html">插件与生命周期</a> — 深入了解插件的完整生命周期</li>
+<li><a href="../framework/service.html">服务与依赖</a> — 让你的插件对外提供服务</li>
+</ul>
+
+    <div class="pager"><a class="prev" href="../basic/tool.html">← 开发一个 Tool</a><a class="next" href="../basic/publish.html">发布 →</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

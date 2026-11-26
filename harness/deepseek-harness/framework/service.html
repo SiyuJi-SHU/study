@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>服务与依赖 · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / 插件框架</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html" class="active"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>服务与依赖</h1>
+<p>服务是一个插件向其他插件公开的能力。inject 声明插件需要哪些服务。</p>
+<h2>什么是服务</h2>
+<p>在 Harness 中，<code>tools</code>、<code>llm</code>、<code>agents</code> 都是服务。服务是挂载在 <code>ctx</code> 上的命名能力：</p>
+<pre><code class="language-ts">ctx.tools    // ToolRuntime service
+ctx.llm      // LLM service
+ctx.agents   // Agent service
+</code></pre>
+<p>任何插件都可以提供服务，供其他插件使用。</p>
+<h2>使用服务</h2>
+<p>声明 <code>inject</code> 来使用已有服务：</p>
+<pre><code class="language-ts">export const inject = [&#39;tools&#39;]
+
+export function apply(ctx: Context) {
+  // ctx.tools exists and is ready here.
+  ctx.tools.register(/* ... */)
+}
+</code></pre>
+<p>框架保证：在 <code>apply</code> 执行时，<code>inject</code> 声明的服务已经全部就绪。如果服务还没准备好，你的插件会等着，不会执行。</p>
+<h2>提供服务</h2>
+<h3>使用 Service 基类</h3>
+<pre><code class="language-ts">import { Service, type Context } from &#39;@deepseek-ai/cordis&#39;
+
+export default class MetricsService extends Service {
+  static inject = [&#39;llm&#39;]  // A service may depend on other services.
+
+  constructor(ctx: Context) {
+    super(ctx, &#39;metrics&#39;)  // &#39;metrics&#39; is the service name.
+  }
+
+  // Public service method.
+  record(event: string, value: number) {
+    // ...
+  }
+}
+</code></pre>
+<p>加载这个插件后，消费方就可以通过 <code>ctx.metrics</code> 访问它：</p>
+<pre><code class="language-ts">export const inject = [&#39;metrics&#39;]
+
+export function apply(ctx: Context) {
+  ctx.metrics.record(&#39;tool_call&#39;, 1)
+}
+</code></pre>
+<h3>类型声明</h3>
+<p>使用 TypeScript 声明合并让 <code>ctx.metrics</code> 有正确类型：</p>
+<pre><code class="language-ts">import { Service, type Context } from &#39;@deepseek-ai/cordis&#39;
+
+declare module &#39;@deepseek-ai/cordis&#39; {
+  interface Context {
+    metrics: MetricsService
+  }
+}
+
+export default class MetricsService extends Service {
+  constructor(ctx: Context) {
+    super(ctx, &#39;metrics&#39;)
+  }
+
+  record(event: string, value: number) { /* ... */ }
+}
+</code></pre>
+<h2>依赖的行为</h2>
+<h3>必需依赖与可选依赖</h3>
+<pre><code class="language-ts">// Required: the plugin does not load while the service is absent.
+export const inject = [&#39;tools&#39;]
+
+// Optional: omit inject and query with ctx.get() at the use site.
+export function apply(ctx: Context) {
+  const metrics = ctx.get(&#39;metrics&#39;)
+  metrics?.record(&#39;plugin_loaded&#39;, 1)
+}
+</code></pre>
+<h3>服务消失时的行为</h3>
+<p>如果应用运行期间某项必需服务消失（例如其提供方卸载）：</p>
+<ol>
+<li>依赖它的插件会自动 dispose（资源释放）</li>
+<li>当服务重新出现时，插件自动重新加载</li>
+</ol>
+<p>这可以防止插件调用已不存在的服务。</p>
+<p><a id="service-isolation"></a></p>
+<h2>服务隔离</h2>
+<p><code>cordis.yml</code> 支持服务隔离——同一个服务可以有多个实例，不同插件组看到不同实例：</p>
+<pre><code class="language-yaml">- id: group-a
+  name: &#39;@deepseek-ai/cordis-plugin-group&#39;
+  group: true
+  isolate:
+    shell: true
+  config:
+    - name: &#39;@deepseek-ai/dsh-bash-local&#39;
+      config:
+        timeoutMs: 5000
+    - name: &#39;./src/plugin-a.ts&#39;
+
+- id: group-b
+  name: &#39;@deepseek-ai/cordis-plugin-group&#39;
+  group: true
+  isolate:
+    shell: true
+  config:
+    - name: &#39;@deepseek-ai/dsh-bash-local&#39;
+      config:
+        timeoutMs: 60000
+    - name: &#39;./src/plugin-b.ts&#39;
+</code></pre>
+<p><code>plugin-a</code> 和 <code>plugin-b</code> 各自看到自己组内的 Bash 实例，互不影响。</p>
+<h2>Harness 内置服务</h2>
+<p>服务名、公开方法和源码位置由仓库自动生成到各服务的<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/subsystems/core.zh.md" target="_blank" rel="noopener">子系统页面</a>。开发插件时应以这些生成区块和服务的 TypeScript 接口为准，不要维护另一份静态清单。</p>
+<h2>下一步</h2>
+<ul>
+<li><a href="../framework/events.html">事件系统</a> — 插件间松耦合通信</li>
+<li><a href="../practice/index.html">能力分层</a> — 将服务用作能力接口</li>
+</ul>
+
+    <div class="pager"><a class="prev" href="../framework/events.html">← 事件</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>

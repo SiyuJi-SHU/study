@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3. 服务 · DeepSeek Harness</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<header class="topbar">
+  <button id="menu" aria-label="目录">☰</button>
+  <a class="brand" href="../../index.html">Harness</a>
+  <span class="crumb"><a href="../../index.html">Harness</a> / <a href="../index.html">DeepSeek Harness</a> / Cordis 教程</span>
+</header>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-title">Harness</div>
+    <a href="../../../index.html"><span class="num">←</span>返回背记卡</a>
+    <a href="../index.html"><span class="num">DS</span>DeepSeek Harness</a>
+    <div class="nav-title">总览</div>
+    <a href="../cordis-primer.html"><span class="num">00</span>Cordis 入门</a>
+    <a href="../architecture.html"><span class="num">00</span>架构</a>
+    <div class="nav-title">Cordis 教程</div>
+    <a href="../cordis-tutorial/index.html"><span class="num">00</span>教程总览</a>
+    <a href="../cordis-tutorial/01-first-plugin.html"><span class="num">01</span>第一个插件</a>
+    <a href="../cordis-tutorial/02-lifecycle-and-effects.html"><span class="num">02</span>生命周期与 effect</a>
+    <a href="../cordis-tutorial/03-services.html" class="active"><span class="num">03</span>服务</a>
+    <a href="../cordis-tutorial/04-events.html"><span class="num">04</span>事件</a>
+    <a href="../cordis-tutorial/05-config.html"><span class="num">05</span>配置</a>
+    <a href="../cordis-tutorial/06-composition-and-hmr.html"><span class="num">06</span>组合与 HMR</a>
+    <a href="../cordis-tutorial/07-into-the-harness.html"><span class="num">07</span>进入 harness</a>
+    <div class="nav-title">第一个 Harness 插件</div>
+    <a href="../basic/index.html"><span class="num">00</span>开始</a>
+    <a href="../basic/tool.html"><span class="num">00</span>开发一个 Tool</a>
+    <a href="../basic/config.html"><span class="num">00</span>配置</a>
+    <a href="../basic/publish.html"><span class="num">00</span>发布</a>
+    <div class="nav-title">插件框架</div>
+    <a href="../framework/index.html"><span class="num">00</span>概览</a>
+    <a href="../framework/events.html"><span class="num">00</span>事件</a>
+    <a href="../framework/service.html"><span class="num">00</span>服务</a>
+    <div class="nav-title">进阶实践</div>
+    <a href="../practice/index.html"><span class="num">00</span>概览</a>
+    <a href="../practice/llm-adapter.html"><span class="num">00</span>LLM 适配器</a>
+    <a href="../practice/dynamic-cordis.html"><span class="num">00</span>动态 Cordis</a>
+    <div class="nav-title">使用指南</div>
+    <a href="../guide/index.html"><span class="num">00</span>指南总览</a>
+    <a href="../guide/providers.html"><span class="num">00</span>模型提供方</a>
+    <a href="../guide/plugin-market.html"><span class="num">00</span>插件市场</a>
+    <a href="../guide/python-sdk.html"><span class="num">00</span>Python SDK</a>
+  </nav>
+  <main class="content">
+    <h1>3. 服务</h1>
+<p><strong>服务</strong>是一个插件提供、其他插件通过 <code>ctx</code> 消费的具名能力。在 harness 中，<code>ctx.tools</code>、<code>ctx.llm</code> 和 <code>ctx.agents</code> 都是服务。消费方只指定 <code>&#39;tools&#39;</code> 之类的能力，而不导入其提供方，因此配置可以选择提供方，无需修改消费方。</p>
+<h2>提供服务</h2>
+<p>创建 <code>greeter.ts</code>，将它放在 <code>tmp/cordis-tutorial</code> 中：</p>
+<pre><code class="language-ts">import { Service, type Context } from &#39;@deepseek-ai/cordis&#39;
+
+declare module &#39;@deepseek-ai/cordis&#39; {
+  interface Context {
+    greeter: GreeterService
+  }
+}
+
+export class GreeterService extends Service {
+  constructor(ctx: Context) {
+    super(ctx, &#39;greeter&#39;)
+  }
+
+  greet(who: string) {
+    return `Hello, ${who}!`
+  }
+}
+
+export const name = &#39;greeter&#39;
+
+export function apply(ctx: Context) {
+  ctx.plugin(GreeterService)
+}
+</code></pre>
+<p>两部分协同工作：</p>
+<ul>
+<li><strong>运行时</strong>：<code>super(ctx, &#39;greeter&#39;)</code> 以名称 <code>greeter</code> 注册该实例。此后，任何插件都可以通过 <code>ctx.greeter</code> 访问它。注册属于 effect，卸载提供方时会移除该服务。</li>
+<li><strong>编译时</strong>：<code>declare module &#39;@deepseek-ai/cordis&#39;</code> 块使用 TypeScript 声明合并，把 <code>greeter</code> 加入 <code>Context</code> 接口，使 <code>ctx.greeter</code> 在各处都能通过类型检查。它不会生成代码；没有该声明时，服务在运行时仍能工作，但消费方会失去类型安全。</li>
+</ul>
+<p><code>Service</code> 子类本身就是插件（第 1 章介绍的类形态），因此 <code>ctx.plugin(GreeterService)</code> 会像挂载其他插件一样挂载它。</p>
+<h2>使用 <code>inject</code> 消费服务</h2>
+<p>创建 <code>consumer.ts</code>：</p>
+<pre><code class="language-ts">import type { Context } from &#39;@deepseek-ai/cordis&#39;
+
+export const name = &#39;consumer&#39;
+export const inject = [&#39;greeter&#39;]
+
+export function apply(ctx: Context) {
+  console.log(ctx.greeter.greet(&#39;world&#39;))
+}
+</code></pre>
+<p><code>inject</code> 列出该插件需要的服务。Cordis 会让插件保持 PENDING，直到列出的每项服务都存在，因此在 <code>apply</code> 内可以保证 <code>ctx.greeter</code> 已经就绪。<code>cordis.yml</code> 中的加载顺序无关紧要：决定插件何时启动的是依赖关系，而不是文件顺序。</p>
+<p>组合并运行：</p>
+<pre><code class="language-yaml">- name: &#39;./greeter.ts&#39;
+- name: &#39;./consumer.ts&#39;
+</code></pre>
+<pre><code>Hello, world!
+</code></pre>
+<p>交换 <code>cordis.yml</code> 中两行的顺序后重新运行，输出仍然相同。尝试彻底移除 <code>./greeter.ts</code>：消费方会保持 PENDING，不输出任何内容，既不崩溃，也不会只运行一部分。处于 PENDING 的 fiber 也不会让 Node 的事件循环保持活跃，因此如果组合中没有其他运行项，进程会静默地以状态码 0 退出。<a href="../cordis-tutorial/06-composition-and-hmr.html">第 6 章</a>介绍如何诊断这种状态。</p>
+<h2>加载后仍会跟踪依赖关系</h2>
+<p><code>inject</code> 并非一次性的启动检查。如果应用运行期间所需服务消失，例如提供方被卸载或热替换，每个依赖插件也会随之卸载，并在服务恢复后再次加载。结合 effect（<a href="../cordis-tutorial/02-lifecycle-and-effects.html">第 2 章</a>），这能防止运行中的消费方保留对不可用服务的引用：依赖消失时，它自己的注册也会撤销。</p>
+<p>这也是配置中可以替换服务的原因：卸载 Cordis 配置项 <code>dsh-bash-local</code>，挂载另一个 <code>shell</code> 提供方，所有注入 <code>&#39;shell&#39;</code> 的插件都会重新启动并使用新实现。</p>
+<h2>可选依赖</h2>
+<p><code>inject</code> 用于硬性依赖。如果某项功能缺失时插件仍可运行，请跳过 <code>inject</code>，并在使用处探测：</p>
+<pre><code class="language-ts">export function apply(ctx: Context) {
+  // undefined when no provider is loaded; the plugin still runs.
+  const greeter = ctx.get(&#39;greeter&#39;)
+  console.log(greeter?.greet(&#39;maybe&#39;) ?? &#39;no greeter available&#39;)
+}
+</code></pre>
+<h2>命名</h2>
+<p>每个应用中的服务名称共用一个扁平命名空间。请为自有服务添加有辨识度的前缀或命名空间（harness 已占用 <code>tools</code> 和 <code>llm</code> 等普通名称）；<a href="https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/subsystems/core.zh.md" target="_blank" rel="noopener">子系统页面</a>上生成的 <code>cordis-surface</code> 区块列出 harness 注册的每个名称。</p>
+<p>下一章：<a href="../cordis-tutorial/04-events.html">事件</a>：无需共享服务即可通信。</p>
+
+    <div class="pager"><a class="prev" href="../cordis-tutorial/02-lifecycle-and-effects.html">← 02 生命周期与 effect</a><a class="next" href="../cordis-tutorial/04-events.html">04 事件 →</a></div>
+    <footer class="foot">
+      内容来自 <a href="https://github.com/deepseek-ai/deepseek-harness" target="_blank" rel="noopener">deepseek-ai/deepseek-harness</a>（MIT）的官方文档，版本 0.2.3-alpha.2。只收录中文文档，未改动内容。
+    </footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/common.min.js"></script>
+<script src="../../assets/site.js"></script>
+</body>
+</html>
