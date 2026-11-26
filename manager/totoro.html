@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Totoro：为什么自己做 · 总管面</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --red:#a53a24; --red-bg:#fbf0ec; --red-bar:#c2583b;
+    --blue:#1f5a86;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 80px}
+
+  .top{position:sticky;top:0;z-index:9;background:var(--bg);padding:10px 0 12px;
+    border-bottom:1px solid var(--line);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+  .back{font-size:12.5px;color:var(--muted);text-decoration:none}
+  .back:hover{color:var(--ink)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:20px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.035)}
+
+  .anchorbox{background:var(--red-bg);border-left:4px solid var(--red-bar);
+    border-radius:12px;padding:13px 15px}
+  .atag{display:block;font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--red);margin-bottom:5px}
+  .anchorbox p{margin:0;font-size:15.5px;font-weight:700;color:var(--red);line-height:1.7}
+
+  .say p{margin:0 0 12px;font-size:16.5px;line-height:1.95;color:#1b1b18}
+  .say p:last-child{margin-bottom:0}
+  .say b{color:var(--red)}
+
+  .ammo{margin:0;padding:0 0 0 20px}
+  .ammo li{font-size:14px;line-height:1.8;margin-bottom:6px;color:#3b3b35}
+  .ammo b{color:var(--blue)}
+
+  .foot{margin-top:26px;font-size:10.5px;color:#a9a59b;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Totoro：为什么自己做</h1>
+    <a class="back" href="index.html">‹ 列表</a>
+  </div>
+
+  <div class="card">
+    <div class="anchorbox">
+      <span class="atag">总管问</span>
+      <p>Totoro 这个项目，你为什么要自己做？</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="say">
+      <p>因为我想展示我个人对于整个 Harness 的理解。因为 Harness 无非就是包括一个完整的 agent loop，里面会加入各种各样的工程化思想。所以我从零做了这个完整的项目，把它走了一遍：</p>
+      <p><b>一是</b>上下文管理；</p>
+      <p><b>二是</b>意图识别；</p>
+      <p><b>三是</b>整个后端能够自主配置 Agent、自主创建知识库；</p>
+      <p><b>四是</b>完整的评测链路。</p>
+      <p>这个链路我非常感兴趣，也觉得很新颖，因为我觉得它能够实际在我的生活中对我产生帮助。所以我结合现今 AI 强大的编程能力，只要我能够在整个架构上对 Agent 的各个模块有一定的理解，就能够构建出完整的一个项目。基于此，我就实际动手去开发这个项目，这个项目是我从零开始全栈开发的。</p>
+    </div>
+  </div>
+
+  <div class="foot">总管面 · 2/6</div>
+</div>
+</body>
+</html>

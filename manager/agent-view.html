@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>和主流 Agent 产品的区别、意义何在 · 总管面</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --red:#a53a24; --red-bg:#fbf0ec; --red-bar:#c2583b;
+    --amber:#89530f; --amber-bg:#fdf4e6; --amber-bar:#d08a2a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 80px}
+
+  .top{position:sticky;top:0;z-index:9;background:var(--bg);padding:10px 0 12px;
+    border-bottom:1px solid var(--line);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+  .back{font-size:12.5px;color:var(--muted);text-decoration:none}
+  .back:hover{color:var(--ink)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:20px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.035)}
+
+  .anchorbox{background:var(--red-bg);border-left:4px solid var(--red-bar);
+    border-radius:12px;padding:13px 15px}
+  .atag{display:block;font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--red);margin-bottom:5px}
+  .anchorbox p{margin:0;font-size:15.5px;font-weight:700;color:var(--red);line-height:1.7}
+
+  .gh{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+  .gname{font-size:13px;font-weight:700;letter-spacing:.5px}
+  .gsub{font-size:11px;color:var(--muted)}
+
+  .say p{margin:0 0 12px;font-size:16.5px;line-height:1.95;color:#1b1b18}
+  .say p:last-child{margin-bottom:0}
+  .say b{color:var(--red)}
+
+  .foot{margin-top:26px;font-size:10.5px;color:#a9a59b;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>和主流 Agent 产品的区别、意义何在</h1>
+    <a class="back" href="index.html">‹ 列表</a>
+  </div>
+
+  <div class="card">
+    <div class="anchorbox">
+      <span class="atag">总管问 · 你被问过很多次的</span>
+      <p>你自己做的，和 WorkBuddy 这些主流的有什么区别？做这个的意义何在？</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="gh"><span class="gname">讲稿</span><span class="gsub">区别和意义</span></div>
+    <div class="say">
+      <p><b>先说区别。</b>WorkBuddy 这些是成熟的产品，通用的能力和稳定性肯定比我自己做的好，这点我不比。我做的也不是一个要替代它们的产品。</p>
+      <p>我做它是为了三件在现成产品里我自己做不到的事。一是整个链路是我自己的，Agent 怎么跑、工具怎么调、上下文怎么管，我都能改。二是评测，答错了我能追到是哪一环出的问题。三是按我自己的需要配 Agent，比如读书和论文的、运维问答的。</p>
+      <p><b>再说意义，有两层。</b>对我自己，是把 Harness 这一层真正做懂了，不是只会配置。对工作，如果团队要做定制的 Agent，我能改到里面去，而不只是在现成平台上配一配。</p>
+    </div>
+  </div>
+
+  <div class="foot">总管面 · 4/6</div>
+</div>
+</body>
+</html>

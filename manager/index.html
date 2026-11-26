@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f6f2">
+<title>总管面 · 面试背记卡</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --red:#a53a24;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:720px;margin:0 auto;padding:calc(32px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom))}
+
+  .back{display:inline-block;font-size:12.5px;color:var(--muted);text-decoration:none;margin-bottom:14px}
+  .back:hover{color:var(--ink)}
+
+  .hd{margin-bottom:22px}
+  h1{font-size:21px;margin:0 0 6px;font-weight:700;letter-spacing:.3px}
+  .sub{font-size:12.5px;color:var(--muted);line-height:1.6}
+
+  .entry{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:16px;text-decoration:none;color:inherit;margin-bottom:10px;
+    box-shadow:0 1px 4px rgba(0,0,0,.03);transition:transform .12s ease,border-color .12s ease}
+  a.entry:hover{border-color:#d5d0c4}
+  a.entry:active{transform:scale(.988)}
+  .num{flex:0 0 auto;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;
+    justify-content:center;font-size:16px;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,#a53a24,#c2783b)}
+  .body{min-width:0;flex:1}
+  .name{font-size:15.5px;font-weight:700;margin-bottom:3px}
+  .desc{font-size:11.5px;color:var(--muted);line-height:1.5}
+
+  .rule{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:14px 16px;font-size:12.5px;line-height:1.8;color:#3b3b35}
+  .rule b{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">‹ 返回首页</a>
+
+  <div class="hd">
+    <h1>总管面</h1>
+    <div class="sub">五张讲稿加一张反问，讲整体判断，不堆技术栈。技术细节被追问才讲。</div>
+  </div>
+
+  <a class="entry" href="self-intro.html">
+    <div class="num">1</div>
+    <div class="body">
+      <div class="name">自我介绍</div>
+      <div class="desc">身份 → 复星三件事 → 在学 Harness → Totoro → 科研</div>
+    </div>
+  </a>
+
+  <a class="entry" href="totoro.html">
+    <div class="num">2</div>
+    <div class="body">
+      <div class="name">Totoro：为什么自己做、解决了什么</div>
+      <div class="desc">实习里看到了什么、我想做什么、做成了什么</div>
+    </div>
+  </a>
+
+  <a class="entry" href="yuliangsheng.html">
+    <div class="num">3</div>
+    <div class="body">
+      <div class="name">为什么宇量昇</div>
+      <div class="desc">公司做什么 + 岗位做什么 + 我的经历怎么接上</div>
+    </div>
+  </a>
+
+  <a class="entry" href="agent-view.html">
+    <div class="num">4</div>
+    <div class="body">
+      <div class="name">和主流 Agent 产品的区别、意义何在</div>
+      <div class="desc">WorkBuddy 这些那么成熟，你自己做的有什么不同、图什么</div>
+    </div>
+  </a>
+
+  <a class="entry" href="fosun.html">
+    <div class="num">5</div>
+    <div class="body">
+      <div class="name">复星实习</div>
+      <div class="desc">村医助手 · 三家云厂商 API 并发检测 · 企业级 Agent SaaS 接入评测</div>
+    </div>
+  </a>
+
+  <a class="entry" href="ask-back.html">
+    <div class="num">6</div>
+    <div class="body">
+      <div class="name">反问</div>
+      <div class="desc">客气的四条，挑两三个问</div>
+    </div>
+  </a>
+
+  <div class="rule">
+    <b>用法：</b>每张卡先开口讲 60–90 秒，讲完再对着页面改。<br>
+    <b>标准：</b>总管能听懂、有记忆点、不堆术语。
+  </div>
+</div>
+</body>
+</html>

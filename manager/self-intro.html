@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自我介绍 · 总管面</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --red:#a53a24; --red-bg:#fbf0ec; --red-bar:#c2583b;
+    --blue:#1f5a86; --blue-bg:#eef4fb; --blue-bar:#3b82b8;
+    --amber:#89530f; --amber-bg:#fdf4e6; --amber-bar:#d08a2a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 80px}
+
+  .top{position:sticky;top:0;z-index:9;background:var(--bg);padding:10px 0 12px;
+    border-bottom:1px solid var(--line);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+  .back{font-size:12.5px;color:var(--muted);text-decoration:none}
+  .back:hover{color:var(--ink)}
+  .ver{font-size:10.5px;font-weight:700;color:var(--amber);background:var(--amber-bg);
+    padding:4px 10px;border-radius:999px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:20px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.035)}
+
+  .anchorbox{background:var(--red-bg);border-left:4px solid var(--red-bar);
+    border-radius:12px;padding:13px 15px}
+  .atag{display:block;font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--red);margin-bottom:5px}
+  .anchorbox p{margin:0;font-size:15.5px;font-weight:700;color:var(--red);line-height:1.7}
+
+  .grp{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+  .grp.first{border-top:none;padding-top:0;margin-top:0}
+  .gh{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+  .gnum{flex:none;font-size:11px;font-weight:700;color:var(--red)}
+  .gname{font-size:13px;font-weight:700;letter-spacing:.5px}
+  .gsub{font-size:11px;color:var(--muted)}
+
+  .say p{margin:0 0 12px;font-size:16.5px;line-height:1.95;color:#1b1b18}
+  .say p:last-child{margin-bottom:0}
+  .opt{background:#faf9f5;border:1px dashed var(--line);border-radius:12px;padding:11px 13px;margin-top:12px}
+  .opt p{margin:0 0 6px;font-size:15.5px;line-height:1.9;color:#3b3b35}
+  .opttag{display:block;font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
+
+  .dont{background:var(--amber-bg);border-left:4px solid var(--amber-bar);
+    border-radius:12px;padding:12px 14px}
+  .dont p{margin:0 0 8px;font-size:13.5px;line-height:1.8;color:var(--amber)}
+  .dont p:last-child{margin-bottom:0}
+
+  .ammo{margin:0;padding:0 0 0 20px}
+  .ammo li{font-size:14px;line-height:1.8;margin-bottom:8px;color:#3b3b35}
+  .ammo li:last-child{margin-bottom:0}
+  .ammo b{color:var(--blue)}
+
+  .verify{background:var(--blue-bg);border-left:4px solid var(--blue-bar);
+    border-radius:12px;padding:12px 14px}
+  .verify p{margin:0;font-size:13px;line-height:1.8;color:var(--blue)}
+
+  .foot{margin-top:26px;font-size:10.5px;color:#a9a59b;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <h1>自我介绍</h1>
+    </div>
+    <a class="back" href="index.html">‹ 列表</a>
+  </div>
+
+  <div class="card">
+    <div class="anchorbox">
+      <span class="atag">顺序 · 五段</span>
+      <p>身份 → 复星三件事 → 在学 Harness → Totoro → 科研</p>
+    </div>
+
+    <div class="grp first" style="margin-top:16px">
+      <div class="gh"><span class="gnum">①</span><span class="gname">开场</span><span class="gsub">身份 + 应聘岗位</span></div>
+      <div class="say">
+        <p>面试官您好，我叫纪思羽。我的本硕都就读于上海大学，本科读的是通信工程，硕士读的是电子信息。我的科研方向是计算机视觉，今天应聘的是宇量昇的软件开发工程师。</p>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="gh"><span class="gnum">②</span><span class="gname">复星</span><span class="gsub">十几秒，三件事只点不展开</span></div>
+      <div class="say">
+        <p>我有一段在复星数智化与 AI 条线的实习，主要参与了三件事情：一是基于 Dify 的村医助手，做了完整的应用编排、UAT 测试与上线；二是对阿里百炼、火山引擎、华为云的大模型 API 做并发实验检测，主要看 TTFT、TPOT 这些时延指标，为企业大模型私有化部署选型提供建议；三是最重要的，复星对接的一个企业级 Agent SaaS 产品，前端、后端都可以自主配置 Agent，我在对它的接入与评测过程中，对完整的企业级 Agent 形态有一定了解。</p>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="gh"><span class="gnum">③</span><span class="gname">在学什么</span><span class="gsub">一句话带过</span></div>
+      <div class="say">
+        <p>另外我也在持续学习一些最前沿的 Harness 框架，包括 Learn Claude Code 这些开源项目。</p>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="gh"><span class="gnum">④</span><span class="gname">Totoro Nexus</span><span class="gsub">全场最重的一段</span></div>
+      <div class="say">
+        <p>所以我自己也开发了 Totoro Nexus，这是一个可自主配置知识库与 Agent 的平台。里面已经上线了一个运维 Agent，还有我用来读书籍论文的 Agent，以及问答类型的一整套 Agent。</p>
+        <p>这个 Agent 里面所有的 Harness，也就是整个链路，都是我设计的：工具集、意图识别、上下文管理、行为模式，全都是我个人设计的。也做了完整的评测，包括 RAG 评测和 Agent 评测。RAG 评测就是一些常见的指标，都是我自己结合最新的技术栈去落实的；Agent 评测是基于 LLM-as-a-Judge 以及人工校验来完成的，整套链路闭环都是我做的。</p>
+        <p>这个项目是基于 Spring AI、Docker，还有 Milvus 这些框架来搭建的，调的大模型是阿里百炼的 DashScope。</p>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="gh"><span class="gnum">⑤</span><span class="gname">科研</span><span class="gsub">收尾</span></div>
+      <div class="say">
+        <p>最后是我的科研经历，做的是视觉模型的微调，用 PEFT 的方法，把通用的视觉能力微调到工业光纤端面的高精度几何参数测量上，用来解决传统光纤端面测量算法中，遇到污点干扰时会失效、鲁棒性不够高的情况。</p>
+      </div>
+      <div class="opt">
+        <span class="opttag">可选收尾</span>
+        <p>这段经历让我一直跟测量误差和数据质量打交道，所以我对宇量昇这种对可靠性要求很高的装备软件方向很感兴趣。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="gh"><span class="gname">被追问时的弹药（指路，不背）</span></div>
+    <ul class="ammo">
+      <li>追问 <b>复星第二件事</b> → 指标 TTFT / TPOT / E2E，EvalScope；三家对比结论见项目背记卡</li>
+      <li>追问 <b>复星第一、三件事</b> → Dify 应用编排 / UAT / SaaS 产品接入与评测过程</li>
+      <li>追问 <b>运行链路怎么设计</b> → 背记卡：harness、three-modes、intent-routing、context-management</li>
+      <li>追问 <b>评测怎么做</b> RAG 评测是常见指标（Hit@K、MRR、证据覆盖率），Agent 评测是 LLM-as-a-Judge + 人工校验 → 背记卡：eval-attribution、eval-set</li>
+      <li>追问 <b>科研细节</b> → 光纤端面几何测量、污点干扰、鲁棒性；PEFT 做法：冻结 encoder、调 decoder 和 head、加 11 个 Adapter，可训练参数占 3.51%</li>
+      <li>追问 <b>在学什么</b> → Learn Claude Code 已学 s01–s04，正在上手 DeepSeek Harness</li>
+    </ul>
+  </div>
+
+  <div class="foot">总管面 · 1/6</div>
+</div>
+</body>
+</html>

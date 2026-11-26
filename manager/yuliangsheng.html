@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>为什么宇量昇 · 总管面</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --red:#a53a24; --red-bg:#fbf0ec; --red-bar:#c2583b;
+    --blue:#1f5a86; --blue-bg:#eef4fb; --blue-bar:#3b82b8;
+    --amber:#89530f; --amber-bg:#fdf4e6; --amber-bar:#d08a2a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 80px}
+
+  .top{position:sticky;top:0;z-index:9;background:var(--bg);padding:10px 0 12px;
+    border-bottom:1px solid var(--line);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+  .back{font-size:12.5px;color:var(--muted);text-decoration:none}
+  .back:hover{color:var(--ink)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:20px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.035)}
+
+  .anchorbox{background:var(--red-bg);border-left:4px solid var(--red-bar);
+    border-radius:12px;padding:13px 15px}
+  .atag{display:block;font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--red);margin-bottom:5px}
+  .anchorbox p{margin:0;font-size:15.5px;font-weight:700;color:var(--red);line-height:1.7}
+
+  .gh{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+  .gname{font-size:13px;font-weight:700;letter-spacing:.5px}
+  .gsub{font-size:11px;color:var(--muted)}
+
+  .say p{margin:0 0 12px;font-size:16.5px;line-height:1.95;color:#1b1b18}
+  .say p:last-child{margin-bottom:0}
+  .say b{color:var(--red)}
+
+  .box{border-left:4px solid var(--blue-bar);background:var(--blue-bg);
+    border-radius:12px;padding:12px 14px}
+  .box.amber{border-left-color:var(--amber-bar);background:var(--amber-bg)}
+  .box p{margin:0 0 8px;font-size:13.5px;line-height:1.8;color:var(--blue)}
+  .box.amber p{color:var(--amber)}
+  .box p:last-child{margin-bottom:0}
+
+  .foot{margin-top:26px;font-size:10.5px;color:#a9a59b;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>为什么宇量昇</h1>
+    <a class="back" href="index.html">‹ 列表</a>
+  </div>
+
+  <div class="card">
+    <div class="anchorbox">
+      <span class="atag">总管问</span>
+      <p>你了解我们吗？为什么想来宇量昇？</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="gh"><span class="gname">讲稿</span><span class="gsub">四个原因</span></div>
+    <div class="say">
+      <p>我了解到宇量昇是一家国资控股的公司，2022 年成立，在上海浦东，做的是半导体行业的高精尖装备研发。我想来主要有四个原因。</p>
+      <p><b>第一是行业。</b>半导体装备是国内正在重点补的一块，软件在这里是产品的一部分，我想进到这个方向里去。</p>
+      <p><b>第二是岗位对得上。</b>这个岗位是从客户需求一直做到软件上线和维护的整个流程。我在复星做过应用的编排、UAT 和上线，Totoro 里做过运行回放和失败归因，这一整套我自己走过一遍。我科研做的是工业测量，对精度和可靠性的要求，跟装备软件是同一类。</p>
+      <p><b>第三是地点。</b>公司就在上海浦东，我本硕都在上海。</p>
+      <p><b>第四是方向。</b>二面的时候了解到，团队在用 DeepSeek Harness 做个人定制的 Agent。这块我自己做过：Totoro 整个 Harness 的链路是我自己设计的，工具集、意图识别、上下文管理、评测都走了一遍。开源的 Harness 我也一直在跟，Learn Claude Code 学了一半，DeepSeek Harness 现在正在上手。所以这个方向我很想进来一起做。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="box">
+      <p><b>查到的公司信息：</b></p>
+      <p>· 聚焦半导体行业高精尖装备研发的新型高科技企业，位于上海浦东（校招公告原文）</p>
+      <p>· 国资控股，2022 年 7 月成立，注册资本 10 亿元</p>
+      <p>· 校招类别：光学光电、机械机电、软件算法、电子电气、环境控制、集成工艺与材料、制造</p>
+      <p>· 这个岗位：JD 写的是从客户需求到产品定义、架构设计、开发实现、商用运营维护；一面了解到团队实际用 Python 和 Java</p>
+    </div>
+  </div>
+
+  <div class="foot">总管面 · 3/6</div>
+</div>
+</body>
+</html>
