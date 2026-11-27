@@ -80,28 +80,65 @@
   </div>
 
   <div class="card">
-    <span class="tag">顺序</span>
-    <h2>先懂，再背</h2>
+    <span class="tag">顺序 · 按这个看</span>
+    <h2>先搞清产品，技术只看三点</h2>
     <ul class="pt">
-      <li>上面「开口讲的一段」是最后背的。</li>
-      <li>下面五课按顺序看，每课最后都有一块「对应 Totoro」，拿你自己写过的东西去对照，最好懂。</li>
-      <li>最底下的查词表不用背，被追问再查。</li>
+      <li>第一块「它是什么、能干什么」，认真看，十分钟能看完。总管问到，答的就是这块。</li>
+      <li>第二块「只学三点技术」，记三个词就够。</li>
+      <li>第三块是开口讲的一段，最后背。</li>
+      <li>再往下的五课和查词表，今晚不用看，被追问到哪个查哪个。</li>
     </ul>
+  </div>
+
+  <div class="card">
+    <span class="tag">产品形态 · 认真看</span>
+    <h2>它是什么、能干什么</h2>
+    <ul class="pt">
+      <li><b>一句话：</b>它是 DeepSeek 开源的 AI 干活助手，跟你现在用的 TRAE、还有 Claude Code、WorkBuddy 是同一类产品。装在本机，有界面，你跟它对话，它替你动手。</li>
+      <li><b>现在的阶段：</b>官方叫「开发者预览」，版本号带 alpha，还在快速迭代，以后会有不兼容的改动。</li>
+      <li><b>怎么用：</b>一条命令 <code>npx @deepseek-ai/dsh web</code> 就在本机起一个网页版；也有桌面版；还有给程序调的 SDK 和跑一次就退出的模式。</li>
+    </ul>
+    <div class="sub">它能干什么（都是最近版本更新日志里写的）</div>
+    <table class="tbl">
+      <tr><td>读写文件、跑命令</td><td>在你电脑的工作目录里干活，改代码、跑脚本。</td></tr>
+      <tr><td>审代码</td><td>接 GitHub 的 PR 和 GitLab，在页面里看改动，跟它一起审。</td></tr>
+      <tr><td>派子 Agent、开团队</td><td>把一部分活派给子 Agent；也能多个 Agent 共用一块任务板分工。</td></tr>
+      <tr><td>连外部服务</td><td>飞书、钉钉、企业微信、腾讯文档、Notion、Linear 都有连接器，在对话里直接用。也支持 MCP。</td></tr>
+      <tr><td>处理文档</td><td>Word、PPT、Excel，内置了 /office 技能。</td></tr>
+      <tr><td>定时任务</td><td>比如每周回顾这种自动化任务。</td></tr>
+      <tr><td>插件市场</td><td>装别人的插件；也能把自己私有的 Git 仓库加进来当插件来源。</td></tr>
+      <tr><td>多开会话</td><td>会话能分叉、能共享给别人、有已读未读。</td></tr>
+    </table>
+    <div class="box">
+      <p><b>和「个人定制 Agent」什么关系：</b>二面说团队在用它做定制 Agent 和交付。在上面做定制，就是写自己的插件、装自己要的工具、接自己公司的服务，把它改成贴合自己工作的样子。不用从零写一个，这也是它和你 Totoro 最大的不同：你是从零造了一个，它是给你一个现成的让你改。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="tag">只学三点技术</span>
+    <h2>记这三个词就够</h2>
+    <table class="tbl">
+      <tr><td>1 一切皆插件</td><td>模型、工具、会话记录、权限审批，连 agent loop 本身都是插件。想换哪块就挂一个插件，不改循环。这是它和别家最大的不同。</td></tr>
+      <tr><td>2 执行前把关</td><td>Agent 要动你电脑之前有一道关：权限、审批、沙箱。可以设成「要问我」，不同意就不放行。</td></tr>
+      <tr><td>3 会话日志</td><td>模型看到的所有东西都记在日志里，只往后加不改。所以能回放、能恢复、能从一个点分叉出新会话。</td></tr>
+    </table>
+    <div class="box">
+      <p><b>对应 Totoro：</b>你的 AgentRuntime 是一个类把这三件事都管了。dsh 是把每一块拆成插件，还在每个节点上开了事件口，谁都能挂监听器。你写的「工具执行前的 Java 校验」，对应的就是第 2 点。</p>
+    </div>
   </div>
 
   <div class="card">
     <span class="tag">最后背 · 被问到时说</span>
     <div class="say">
-      <p>DeepSeek Harness 是 DeepSeek 开源的 Agent Harness，现在还是 alpha 版本。它最核心的一点是所有东西都是插件：模型适配器、工具、会话日志、权限审批，连 agent loop 本身都是插件，挂在 Cordis 这个框架上，每一块都能从配置里换掉。</p>
-      <p>它的循环和我在 Totoro 里做的 AgentRuntime 是一个路数。一轮里先定好这次用哪个模型、哪些工具，组装提示词，调模型；模型要调工具，就走执行前、执行、执行后三道；结果写回会话日志，再进下一步，直到没有工具要调为止。</p>
-      <p>区别是它把每一步都开成了事件接口。比如工具执行前那个事件，我挂一个自己的监听器就能做审批或拦截，不用改循环的代码。Totoro 里这些是我写在 Runtime 里的，它是做成了谁都能挂的扩展点。</p>
-      <p>我现在在跟它的官方 Cordis 教程，环境装好了，第一章跑通了。</p>
+      <p>DeepSeek Harness 是 DeepSeek 开源的 Agent Harness，现在还是开发者预览阶段。说白了它跟 Claude Code、WorkBuddy 是一类产品：装在本机，有网页版和桌面版，能让模型读写文件、跑命令、改代码、审 PR，还能接飞书、钉钉这些外部服务。</p>
+      <p>它最大的特点是所有东西都是插件，连 agent loop 本身也是。想换哪块就挂一个插件，不用改循环。这和我在 Totoro 里做的 AgentRuntime 是一个路数，区别是 Totoro 是我从零写的，它是把每一块都做成了谁都能挂的扩展点。团队在用它做定制 Agent，我觉得就是这个意思。</p>
+      <p>我现在在跟它的官方教程，第一章跑通了。</p>
     </div>
   </div>
 
   <div class="card">
-    <span class="tag">它是什么</span>
-    <h2> Harness 就是包在模型外面的那层程序</h2>
+    <span class="tag">有余力再看</span>
+    <h2>Harness 就是包在模型外面的那层程序</h2>
     <ul class="pt">
       <li>模型本身只会一件事：给它一段文字，它吐出一段文字。它不会读文件、不会跑命令、也记不住上一轮说了什么。</li>
       <li>中间这层要有人干：把用户的话和历史整理好给模型，告诉它有哪些工具能调，它说「我要调某个工具」时替它真去调，再把结果喂回去让它接着想，整个过程还要记下来。这层就叫 <b>Harness</b>。</li>
