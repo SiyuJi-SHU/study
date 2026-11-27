@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DeepSeek Harness 技术栈 · 总管面</title>
+<title>DeepSeek Harness 入门 · 总管面</title>
 <style>
   :root{
     --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
-    --red:#a53a24;
+    --red:#a53a24; --red-bg:#fbf0ec; --red-bar:#c2583b;
+    --blue:#1f5a86; --blue-bg:#eef4fb; --blue-bar:#3b82b8;
+    --amber:#89530f; --amber-bg:#fdf4e6; --amber-bar:#d08a2a;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -25,11 +27,24 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
     padding:20px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.035)}
 
-  .gh{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
-  .gname{font-size:13px;font-weight:700;letter-spacing:.5px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:1px;color:var(--red);
+    background:var(--red-bg);padding:4px 10px;border-radius:999px;margin-bottom:10px}
+  h2{font-size:16px;margin:0 0 12px;font-weight:700}
 
   .say p{font-size:15.5px;line-height:1.9;margin:0 0 12px}
   .say p:last-child{margin-bottom:0}
+
+  .box{border-left:4px solid var(--blue-bar);background:var(--blue-bg);
+    border-radius:12px;padding:12px 14px;margin-top:14px}
+  .box.amber{border-left-color:var(--amber-bar);background:var(--amber-bg)}
+  .box p{margin:0;font-size:14px;line-height:1.85;color:var(--blue)}
+  .box.amber p{color:var(--amber)}
+  .box b{font-weight:700}
+
+  ul.pt{margin:0;padding:0 0 0 20px}
+  ul.pt li{font-size:15px;line-height:1.85;margin-bottom:8px}
+  ul.pt li:last-child{margin-bottom:0}
+  ul.pt b{color:var(--red)}
 
   .sub{font-size:12.5px;font-weight:700;color:var(--red);margin:18px 0 4px;letter-spacing:.5px}
   .sub:first-of-type{margin-top:0}
@@ -39,18 +54,43 @@
   .tbl tr:first-child td{border-top:none}
   .tbl td:first-child{white-space:nowrap;font-weight:700;color:var(--red);width:150px}
 
+  .cmp{width:100%;border-collapse:collapse}
+  .cmp th{font-size:12.5px;font-weight:700;color:var(--muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--line)}
+  .cmp td{border-top:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top;font-size:14.5px;line-height:1.75}
+  .cmp tr:first-child td{border-top:none}
+  .cmp td:first-child{color:var(--muted);width:47%}
+
+  ol.flow{margin:0;padding:0 0 0 22px}
+  ol.flow li{font-size:15px;line-height:1.85;margin-bottom:9px;padding-left:4px}
+  ol.flow li::marker{font-weight:700;color:var(--red)}
+  ol.flow b{color:var(--red)}
+  code{font-size:13px;background:#f1efe8;padding:1px 5px;border-radius:5px}
+
+  .links a{display:block;font-size:14.5px;line-height:1.9;color:var(--blue);text-decoration:none}
+  .links a:hover{text-decoration:underline}
+
   .foot{margin-top:26px;font-size:10.5px;color:#a9a59b;text-align:center}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>DeepSeek Harness 技术栈</h1>
+    <h1>DeepSeek Harness 入门</h1>
     <a class="back" href="index.html">‹ 列表</a>
   </div>
 
   <div class="card">
-    <div class="gh"><span class="gname">被问到时，先说这一段</span></div>
+    <span class="tag">顺序</span>
+    <h2>先懂，再背</h2>
+    <ul class="pt">
+      <li>上面「开口讲的一段」是最后背的。</li>
+      <li>下面五课按顺序看，每课最后都有一块「对应 Totoro」，拿你自己写过的东西去对照，最好懂。</li>
+      <li>最底下的查词表不用背，被追问再查。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <span class="tag">最后背 · 被问到时说</span>
     <div class="say">
       <p>DeepSeek Harness 是 DeepSeek 开源的 Agent Harness，现在还是 alpha 版本。它最核心的一点是所有东西都是插件：模型适配器、工具、会话日志、权限审批，连 agent loop 本身都是插件，挂在 Cordis 这个框架上，每一块都能从配置里换掉。</p>
       <p>它的循环和我在 Totoro 里做的 AgentRuntime 是一个路数。一轮里先定好这次用哪个模型、哪些工具，组装提示词，调模型；模型要调工具，就走执行前、执行、执行后三道；结果写回会话日志，再进下一步，直到没有工具要调为止。</p>
@@ -60,45 +100,141 @@
   </div>
 
   <div class="card">
-    <div class="gh"><span class="gname">技术栈解释</span></div>
+    <span class="tag">它是什么</span>
+    <h2> Harness 就是包在模型外面的那层程序</h2>
+    <ul class="pt">
+      <li>模型本身只会一件事：给它一段文字，它吐出一段文字。它不会读文件、不会跑命令、也记不住上一轮说了什么。</li>
+      <li>中间这层要有人干：把用户的话和历史整理好给模型，告诉它有哪些工具能调，它说「我要调某个工具」时替它真去调，再把结果喂回去让它接着想，整个过程还要记下来。这层就叫 <b>Harness</b>。</li>
+      <li>你在 Totoro 里写的 <b>AgentRuntime</b> 干的就是这件事。</li>
+      <li><b>DeepSeek Harness</b>（简称 dsh）是 DeepSeek 把自家这一层开源出来的。TypeScript 写的，MIT 协议，现在版本 0.2.3-alpha.2，还在 alpha。</li>
+      <li>它最大的特点：<b>这一层的每一块都是插件</b>。模型适配器、工具、会话日志、权限审批，连 agent loop 本身也是插件。没有一个要你去改源码的「内核」。</li>
+    </ul>
+  </div>
 
+  <div class="card">
+    <span class="tag">第 1 课 · 底层框架</span>
+    <h2>Cordis：一个插件框架</h2>
+    <p style="font-size:15px;line-height:1.85;margin:0 0 10px">dsh 是长在 Cordis 上的。Cordis 管的事只有一件：让一堆插件能挂上去、能互相找到、能被干净地卸掉。五个概念：</p>
+    <table class="tbl">
+      <tr><td>插件</td><td>一个函数，被加载时调用，拿到一个 <code>ctx</code>，然后往里登记东西。也可以写成一个 Service 类。</td></tr>
+      <tr><td>ctx</td><td>服务的容器。一个服务占一个固定的键：<code>ctx.tools</code>、<code>ctx.llm</code>、<code>ctx.sessions</code>。别的插件按键拿，不去 import 具体实现。</td></tr>
+      <tr><td>inject</td><td>插件声明自己要用哪些服务。声明了，就等这些服务就绪才启动。加载顺序靠这个表达，不用手写先启动谁。</td></tr>
+      <tr><td>事件</td><td>服务声明事件名，别人挂监听器。分发方式有五种：emit（只通知）、waterfall（一串依次处理）、parallel（并行）、serial（按序）、bail（碰到第一个返回值就停）。</td></tr>
+      <tr><td>可撤销</td><td>插件登记的每样东西都带一个撤销动作，插件卸载时自动撤。用 <code>ctx.on()</code>、<code>ctx.plugin()</code> 登记的自动算；定时器、连接这种框架不认识的，要包在 <code>ctx.effect()</code> 里。</td></tr>
+    </table>
+    <div class="sub">瀑布事件（waterfall）单独说一句</div>
+    <ul class="pt">
+      <li>监听器拿到的参数最后多一个 <code>next</code>。调了 <code>next()</code>，才轮到下一个监听器；不调，就到此为止。</li>
+      <li>所以想拦截某个动作，不用改循环，挂一个监听器、不调 next 就行。</li>
+    </ul>
+    <div class="box">
+      <p><b>对应 Totoro：</b>你写的是 Spring。插件像 @Component，ctx 像容器，inject 像 @Autowired，事件像 Spring 的 ApplicationEvent，只是多了「不调 next 就拦住」这种玩法。区别是 Spring 里业务类之间还是直接互相调用，dsh 里插件之间只通过 ctx 上的服务和事件说话。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="tag">第 2 课 · 怎么组装</span>
+    <h2>Profile、Bundle、Patch：一套是配置叠出来的</h2>
+    <table class="tbl">
+      <tr><td>Profile</td><td>一套起了名字的组装方案。自带的几种：web（带网页界面）、headless（跑一次任务就退出）、sdk（给程序调）、acp（自动化用）。</td></tr>
+      <tr><td>Bundle 组合包</td><td>一批插件加它们的配置，打包在一起。dsh-base 是公共底座：模型适配器、工具、持久化、沙箱与审批、设置、凭据。</td></tr>
+      <tr><td>Patch 补丁</td><td>一份配置文件，按 id 找到某个插件条目，改它的配置，或者插一个新条目进去。</td></tr>
+      <tr><td>HMR 热重载</td><td>改了配置文件，程序不重启，自动把相关插件卸掉再装回去。</td></tr>
+    </table>
+    <div class="sub">叠的顺序</div>
+    <p style="font-size:15px;line-height:1.85;margin:0">profile 里列的组合包 → profile 自己的 <code>cordis.patch.yml</code> → home patch → 命令行 <code>--patch</code>。后面的盖住前面的。所以官方的东西你一行不用改，写个 patch 就能换掉任何一块。</p>
+    <div class="box">
+      <p><b>对应 Totoro：</b>Totoro 的装配是写在代码里的，构造函数里注入一堆 Service，要换实现就得改代码重新编译。dsh 是配置文件叠出来的，改一个 patch 文件就是另一套。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="tag">第 3 课 · 基本逻辑</span>
+    <h2>转一圈发生了什么</h2>
+    <ul class="pt">
+      <li><b>步骤</b>：调一次模型，加上这次回复引发的工具调用。</li>
+      <li><b>轮次</b>：从拿到你一句话开始，到模型和工具都停手为止。一个轮次里有零个或多个步骤。</li>
+    </ul>
+    <div class="sub">一个轮次里的顺序</div>
+    <ol class="flow">
+      <li><b>turn/start。</b>领走用户这句话。</li>
+      <li><b>组装。</b>定好这次用哪个模型，拼提示词，定这次模型能看到的工具。</li>
+      <li><b>agent/pre-step。</b>瀑布事件。监听器可以放行、改写要送进去的消息，或者直接拒绝。</li>
+      <li><b>step/start，调模型。</b>系统的更新和用户消息先记进日志，再从日志推出这次请求的历史，然后流式调模型。</li>
+      <li><b>assistant/message。</b>模型的回复记进日志。</li>
+      <li><b>模型要调工具。</b>记 <code>tool/call</code>，然后走三道：执行前（钩子、权限、沙箱）→ 守卫（只能拒绝或不表态）→ 执行（超时、重试）→ 执行后（接受、拦截、替换结果），最后记 <code>tool/result</code>。</li>
+      <li><b>step/end。</b>工具结果还要喂给模型，或者用户又发了话，回到第 3 步再来一个步骤。</li>
+      <li><b>turn/end。</b>没有要干的活了，轮次关掉。</li>
+    </ol>
+    <div class="sub">事件分三类</div>
+    <table class="tbl">
+      <tr><td>会话事件</td><td>记进日志的事实，重新加载以后还在。turn/*、step/*、各种 message、tool/* 都是。</td></tr>
+      <tr><td>agent/*</td><td>正在进行的协调：收件箱、步骤、状态、请求。用来观察或拦截进行中的工作。</td></tr>
+      <tr><td>能力事件</td><td>给某项能力挂策略，不用动循环。fs/*、tools/*、telemetry/*。</td></tr>
+    </table>
+    <div class="box">
+      <p><b>对应 Totoro：</b>AgentRuntime 的 execute 方法，从 TaskRouter 判断意图，到拼 messages，到 ReActExecutor 跑，到校验、落库，是一条写死的流程。dsh 把这条流程的每个节点都发成事件，谁都能在节点上挂东西。你写的「工具执行前的 Java 校验」，对应的就是执行前那一道。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="tag">第 4 课 · 记忆从哪来</span>
+    <h2>会话日志：模型看到的历史是推出来的</h2>
+    <ul class="pt">
+      <li>日志只往后追加，不改以前的内容。</li>
+      <li>模型每轮看到的历史，不是另外存的一份，而是从日志里推出来的。</li>
+      <li>原则一句话：<b>模型可见即已记录</b>。模型看到过的每样东西，都必须能从日志重建。</li>
+      <li>所以回放、恢复、从一个点分叉出新会话，都是从日志来的。</li>
+      <li>对话太长时有压缩：先把工具结果剪短，还不行就把前面的内容做成摘要。</li>
+    </ul>
+    <div class="box">
+      <p><b>对应 Totoro：</b>你落的是 agent_runs 和 run_events，下一轮从上几次运行的 result 里拼回历史。思路一样，dsh 更彻底，连每一次请求的完整上下文都能重建。上下文压缩你没做，是靠只取最近 4 轮加截断。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="tag">第 5 课 · 怎么定制</span>
+    <h2>能力接缝：换一个提供方，行为就变了</h2>
+    <ul class="pt">
+      <li>一项可以整体替换的能力，固定分三个角色：<b>接口</b>、<b>提供方</b>、<b>使用方</b>。</li>
+      <li>例子：shell 的接口，本机的 Bash 提供方，给模型用的 Bash 工具。</li>
+      <li>把提供方换成远程沙箱，Bash、终端、LSP 就一起搬到沙箱里跑了，工具本身一行没动。</li>
+      <li>「个人定制 Agent」在 dsh 里就是这么做的：不改循环，换插件。</li>
+    </ul>
+    <div class="sub">Totoro 和 dsh 放一起看</div>
+    <table class="cmp">
+      <tr><th>Totoro</th><th>dsh</th></tr>
+      <tr><td>AgentRuntime 一个类管全程</td><td>拆成 core/agent-loop、core/tools、core/session、llm/llm 等插件</td></tr>
+      <tr><td>构造函数注入 Service</td><td>ctx 加 inject</td></tr>
+      <tr><td>switch 里选 ReAct、计划执行、固定流程</td><td>agent loop 自己也是插件，整个能换</td></tr>
+      <tr><td>工具执行前过 Java 校验</td><td>执行前瀑布事件加守卫</td></tr>
+      <tr><td>要加一道检查得改 Runtime</td><td>挂一个监听器</td></tr>
+      <tr><td>取最近 4 轮，超长截断</td><td>先剪工具结果，再做摘要</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <span class="tag">查词表 · 不用背</span>
     <div class="sub">底层框架</div>
     <table class="tbl">
       <tr><td>Cordis</td><td>DeepSeek Harness 底下的插件框架。插件往一个共享的上下文 ctx 里登记服务、事件和清理动作，框架负责加载、卸载和热重载。</td></tr>
-      <tr><td>插件 Plugin</td><td>一个函数，加载时被调用，拿到 ctx 后往里登记东西。它登记的一切，在它被卸载时自动撤销。</td></tr>
-      <tr><td>一切皆插件</td><td>模型适配器、工具注册表、会话日志、agent loop 本身都是插件，没有一个需要打补丁的特权内核，每一块都能从配置换掉。</td></tr>
       <tr><td>Effect 副作用</td><td>插件登记的每样东西都带一个撤销动作。用 ctx.on()、ctx.plugin() 登记的自动算；定时器、连接这类框架不认识的资源，要包在 ctx.effect() 里。</td></tr>
       <tr><td>Service 服务</td><td>插件对外提供的能力，挂在 ctx 的一个键上，比如 ctx.tools、ctx.llm、ctx.sessions。别的插件通过这个键来用。</td></tr>
-    </table>
-
-    <div class="sub">怎么组装</div>
-    <table class="tbl">
-      <tr><td>Profile</td><td>一套起了名字的组装方案，列出装哪些组合包。自带 web、headless、sdk、acp 几种：web 是带网页界面的，headless 是跑一次任务就退出的，sdk 是给程序调的。</td></tr>
-      <tr><td>组合包 Bundle</td><td>一批插件加它们的配置，打包在一起发。dsh-base 是公共的底座：模型适配器、工具、持久化、沙箱与审批、设置、凭据。</td></tr>
-      <tr><td>Patch 补丁</td><td>一份配置文件，按 id 找到某个插件条目，改它的配置或插入新条目。上一层能盖住下一层，定制主要靠它。</td></tr>
-      <tr><td>HMR 热重载</td><td>改了配置文件，程序不重启，自动把相关插件卸载再重新加载。</td></tr>
       <tr><td>Preset 预设</td><td>一个 agent 的能力组合：装哪些工具、哪段提示词。换个预设就是换一种 agent。</td></tr>
     </table>
 
     <div class="sub">怎么运行</div>
     <table class="tbl">
-      <tr><td>Agent Loop</td><td>不断重复“调模型 → 执行工具 → 结果回填”，直到没有工具要调。默认实现在 core/agent-loop 包里，它自己也是个插件。</td></tr>
-      <tr><td>轮次 Turn</td><td>从拿到你的一条输入开始，到模型和工具都停手为止。一个轮次里有零个或多个步骤。</td></tr>
-      <tr><td>步骤 Step</td><td>一次调模型，加上这次回复引发的工具执行。</td></tr>
-      <tr><td>会话日志</td><td>只往后追加、不改动的事件记录，模型看到的历史是从它推出来的。原则是“模型看到的，都必须能从日志重建”。Totoro 里落 PostgreSQL 的运行记录和事件是同一个思路。</td></tr>
-      <tr><td>三类事件</td><td>会话事件：记进日志、重载后还在的事实。Agent 事件（agent/*）：进行中的工作，比如收件箱、步骤、状态、请求。能力事件（fs/*、tools/* 等）：给某项能力挂策略，不用动循环。</td></tr>
-      <tr><td>瀑布事件</td><td>一串监听器依次处理同一个事件，每个必须调 next() 才交给下一个，不调就到此为止。工具执行前、执行后那几个事件都是这种。</td></tr>
-      <tr><td>工具执行流水线</td><td>模型要调工具时依次走：执行前（钩子、权限、沙箱）→ 守卫 → 执行（超时、重试、指标）→ 执行后（接受、拦截、替换结果）→ 结果。Totoro 里工具执行前的 Java 校验对应的是执行前这一道。</td></tr>
+      <tr><td>Agent Loop</td><td>不断重复「调模型 → 执行工具 → 结果回填」，直到没有工具要调。默认实现在 core/agent-loop 包里，它自己也是个插件。</td></tr>
       <tr><td>审批 Approval</td><td>工具执行前弹一次窗问用户，同意才放行。没人回答就当拒绝。</td></tr>
-      <tr><td>守卫 Guard</td><td>只能“拒绝”或“不表态”的检查，不能改写调用。</td></tr>
+      <tr><td>守卫 Guard</td><td>只能「拒绝」或「不表态」的检查，不能改写调用。</td></tr>
       <tr><td>沙箱 Sandbox</td><td>限制工具能启动什么进程、能碰什么。把文件系统和进程的提供方指向远程沙箱，Bash、终端这些工具就一起搬到沙箱里跑了。</td></tr>
-      <tr><td>上下文压缩</td><td>对话太长时，先把工具结果剪短，再不行就把前面的内容做成摘要，腾出窗口。</td></tr>
       <tr><td>Scope 作用域</td><td>按 agent 划分的登记范围。一个工具或提示词片段要么全局可见，要么只属于一个 agent；同一个名字，局部的盖住全局的。</td></tr>
     </table>
 
     <div class="sub">怎么扩展</div>
     <table class="tbl">
-      <tr><td>Seam 能力接缝</td><td>一项可以整体替换的能力，固定分三个角色：接口定义、提供方、使用方。比如 shell 的接口、本地 Bash 提供方、Bash 工具。换一个提供方，整个行为就变了。</td></tr>
+      <tr><td>Seam 能力接缝</td><td>一项可以整体替换的能力，固定分三个角色：接口定义、提供方、使用方。</td></tr>
       <tr><td>LLM 适配器</td><td>把某家模型的接口接进来的插件，登记在 ctx.llm 上。换模型就是换这个插件。</td></tr>
       <tr><td>Hook 钩子</td><td>挂在事件上的监听器，在不改循环的前提下加检查或处理。</td></tr>
       <tr><td>Subagent</td><td>把一部分活委派给另一个 agent 去做。它的提供方也能换：可以新起一个子 agent，也可以把一轮交给别的产品。</td></tr>
@@ -116,7 +252,17 @@
     </table>
   </div>
 
-  <div class="foot">总管面 · DeepSeek Harness 技术栈</div>
+  <div class="card">
+    <span class="tag">原文</span>
+    <div class="links">
+      <a href="../harness/deepseek-harness/index.html">官方文档首页（中文镜像，25 页）</a>
+      <a href="../harness/deepseek-harness/cordis-primer.html">Cordis 入门：五个核心概念</a>
+      <a href="../harness/deepseek-harness/architecture.html">架构：轮次流程、事件、会话日志</a>
+      <a href="../harness/deepseek-harness/cordis-tutorial/index.html">Cordis 教程：七章，每章能离线跑</a>
+    </div>
+  </div>
+
+  <div class="foot">总管面 · DeepSeek Harness 入门 · 依据官方文档 0.2.3-alpha.2</div>
 </div>
 </body>
 </html>
