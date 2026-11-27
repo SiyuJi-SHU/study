@@ -83,11 +83,34 @@
     <span class="tag">顺序 · 按这个看</span>
     <h2>先搞清产品，技术只看三点</h2>
     <ul class="pt">
-      <li>第一块「它是什么、能干什么」，认真看，十分钟能看完。总管问到，答的就是这块。</li>
+      <li>先扫「基础词」，混个眼熟，不用背。</li>
+      <li>再认真看「它是什么、能干什么」，十分钟。总管问到，答的就是这块。</li>
       <li>第二块「只学三点技术」，记三个词就够。</li>
       <li>第三块是开口讲的一段，最后背。</li>
       <li>再往下的五课和查词表，今晚不用看，被追问到哪个查哪个。</li>
     </ul>
+  </div>
+
+  <div class="card">
+    <span class="tag">先认词 · 扫一遍，不用背</span>
+    <h2>学过它的人都会的基础词</h2>
+    <table class="tbl">
+      <tr><td>dsh</td><td>DeepSeek Harness 的简称。它的命令就叫这个，比如 <code>dsh web</code>。</td></tr>
+      <tr><td>Harness</td><td>包在模型外面的那层程序。模型只会「进一段文字、出一段文字」，读文件、跑命令、记历史这些事都是 Harness 替它干的。</td></tr>
+      <tr><td>Agent</td><td>模型加上工具加上循环，能自己动手干活。你的 Totoro 里每个 Agent 就是这个。</td></tr>
+      <tr><td>agent loop</td><td>转圈：调模型 → 模型说要调工具 → 替它调 → 结果喂回去 → 再调模型。直到模型不再要工具为止。</td></tr>
+      <tr><td>工具 Tool</td><td>模型能调的一个函数。读文件、搜知识库、发飞书消息，都是工具。你写的 knowledge.search 就是一个。</td></tr>
+      <tr><td>插件 Plugin</td><td>dsh 里「加一块东西」的单位。工具、提示词、检查、模型适配、界面页面，都是插件。</td></tr>
+      <tr><td>ctx</td><td>插件的公共容器。插件把自己提供的服务挂上去，比如 <code>ctx.tools</code>、<code>ctx.llm</code>，别的插件按键来拿。</td></tr>
+      <tr><td>Cordis</td><td>dsh 底下的插件框架，管插件的加载、卸载、热重载。</td></tr>
+      <tr><td>连接器</td><td>接一个外部服务的插件，比如飞书、钉钉。你授权后，它给模型一组工具，替模型去调外部接口。</td></tr>
+      <tr><td>MCP</td><td>一个通用协议，规定 Agent 怎么发现和调用外部工具。别人写好的 MCP 服务能直接接。dsh 里接 MCP 的东西本身也是插件。</td></tr>
+      <tr><td>子 Agent / 团队</td><td>把一部分活派给另一个 Agent；多个 Agent 共用一块任务板分工。</td></tr>
+      <tr><td>会话日志</td><td>只往后加、不改动的事件记录。模型看到的历史是从它推出来的，所以能回放、能恢复。</td></tr>
+      <tr><td>审批 / 沙箱</td><td>Agent 动你电脑前的两道关。审批是弹窗问你；沙箱是限制它能启动什么、能碰什么。</td></tr>
+      <tr><td>Profile / Patch</td><td>Profile 是一套起了名字的组装方案；Patch 是一份配置文件，按它改掉或插入某一块。</td></tr>
+      <tr><td>技能 Skill</td><td>一包现成的做法，比如处理 Word、PPT、Excel 的 /office。类似你给 Agent 写的任务说明。</td></tr>
+    </table>
   </div>
 
   <div class="card">
