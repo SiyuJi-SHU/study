@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeek Harness 技术栈 · 总管面</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --card:#fff; --line:#e7e4dc; --ink:#1b1b18; --muted:#7c7a70;
+    --red:#a53a24;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 80px}
+
+  .top{position:sticky;top:0;z-index:9;background:var(--bg);padding:10px 0 12px;
+    border-bottom:1px solid var(--line);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+  .back{font-size:12.5px;color:var(--muted);text-decoration:none}
+  .back:hover{color:var(--ink)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:20px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.035)}
+
+  .gh{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+  .gname{font-size:13px;font-weight:700;letter-spacing:.5px}
+
+  .say p{font-size:15.5px;line-height:1.9;margin:0 0 12px}
+  .say p:last-child{margin-bottom:0}
+
+  .sub{font-size:12.5px;font-weight:700;color:var(--red);margin:18px 0 4px;letter-spacing:.5px}
+  .sub:first-of-type{margin-top:0}
+
+  .tbl{width:100%;border-collapse:collapse}
+  .tbl td{border-top:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top;font-size:14.5px;line-height:1.75}
+  .tbl tr:first-child td{border-top:none}
+  .tbl td:first-child{white-space:nowrap;font-weight:700;color:var(--red);width:150px}
+
+  .foot{margin-top:26px;font-size:10.5px;color:#a9a59b;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>DeepSeek Harness 技术栈</h1>
+    <a class="back" href="index.html">‹ 列表</a>
+  </div>
+
+  <div class="card">
+    <div class="gh"><span class="gname">被问到时，先说这一段</span></div>
+    <div class="say">
+      <p>DeepSeek Harness 是 DeepSeek 开源的 Agent Harness，现在还是 alpha 版本。它最核心的一点是所有东西都是插件：模型适配器、工具、会话日志、权限审批，连 agent loop 本身都是插件，挂在 Cordis 这个框架上，每一块都能从配置里换掉。</p>
+      <p>它的循环和我在 Totoro 里做的 AgentRuntime 是一个路数。一轮里先定好这次用哪个模型、哪些工具，组装提示词，调模型；模型要调工具，就走执行前、执行、执行后三道；结果写回会话日志，再进下一步，直到没有工具要调为止。</p>
+      <p>区别是它把每一步都开成了事件接口。比如工具执行前那个事件，我挂一个自己的监听器就能做审批或拦截，不用改循环的代码。Totoro 里这些是我写在 Runtime 里的，它是做成了谁都能挂的扩展点。</p>
+      <p>我现在在跟它的官方 Cordis 教程，环境装好了，第一章跑通了。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="gh"><span class="gname">技术栈解释</span></div>
+
+    <div class="sub">底层框架</div>
+    <table class="tbl">
+      <tr><td>Cordis</td><td>DeepSeek Harness 底下的插件框架。插件往一个共享的上下文 ctx 里登记服务、事件和清理动作，框架负责加载、卸载和热重载。</td></tr>
+      <tr><td>插件 Plugin</td><td>一个函数，加载时被调用，拿到 ctx 后往里登记东西。它登记的一切，在它被卸载时自动撤销。</td></tr>
+      <tr><td>一切皆插件</td><td>模型适配器、工具注册表、会话日志、agent loop 本身都是插件，没有一个需要打补丁的特权内核，每一块都能从配置换掉。</td></tr>
+      <tr><td>Effect 副作用</td><td>插件登记的每样东西都带一个撤销动作。用 ctx.on()、ctx.plugin() 登记的自动算；定时器、连接这类框架不认识的资源，要包在 ctx.effect() 里。</td></tr>
+      <tr><td>Service 服务</td><td>插件对外提供的能力，挂在 ctx 的一个键上，比如 ctx.tools、ctx.llm、ctx.sessions。别的插件通过这个键来用。</td></tr>
+    </table>
+
+    <div class="sub">怎么组装</div>
+    <table class="tbl">
+      <tr><td>Profile</td><td>一套起了名字的组装方案，列出装哪些组合包。自带 web、headless、sdk、acp 几种：web 是带网页界面的，headless 是跑一次任务就退出的，sdk 是给程序调的。</td></tr>
+      <tr><td>组合包 Bundle</td><td>一批插件加它们的配置，打包在一起发。dsh-base 是公共的底座：模型适配器、工具、持久化、沙箱与审批、设置、凭据。</td></tr>
+      <tr><td>Patch 补丁</td><td>一份配置文件，按 id 找到某个插件条目，改它的配置或插入新条目。上一层能盖住下一层，定制主要靠它。</td></tr>
+      <tr><td>HMR 热重载</td><td>改了配置文件，程序不重启，自动把相关插件卸载再重新加载。</td></tr>
+      <tr><td>Preset 预设</td><td>一个 agent 的能力组合：装哪些工具、哪段提示词。换个预设就是换一种 agent。</td></tr>
+    </table>
+
+    <div class="sub">怎么运行</div>
+    <table class="tbl">
+      <tr><td>Agent Loop</td><td>不断重复“调模型 → 执行工具 → 结果回填”，直到没有工具要调。默认实现在 core/agent-loop 包里，它自己也是个插件。</td></tr>
+      <tr><td>轮次 Turn</td><td>从拿到你的一条输入开始，到模型和工具都停手为止。一个轮次里有零个或多个步骤。</td></tr>
+      <tr><td>步骤 Step</td><td>一次调模型，加上这次回复引发的工具执行。</td></tr>
+      <tr><td>会话日志</td><td>只往后追加、不改动的事件记录，模型看到的历史是从它推出来的。原则是“模型看到的，都必须能从日志重建”。Totoro 里落 PostgreSQL 的运行记录和事件是同一个思路。</td></tr>
+      <tr><td>三类事件</td><td>会话事件：记进日志、重载后还在的事实。Agent 事件（agent/*）：进行中的工作，比如收件箱、步骤、状态、请求。能力事件（fs/*、tools/* 等）：给某项能力挂策略，不用动循环。</td></tr>
+      <tr><td>瀑布事件</td><td>一串监听器依次处理同一个事件，每个必须调 next() 才交给下一个，不调就到此为止。工具执行前、执行后那几个事件都是这种。</td></tr>
+      <tr><td>工具执行流水线</td><td>模型要调工具时依次走：执行前（钩子、权限、沙箱）→ 守卫 → 执行（超时、重试、指标）→ 执行后（接受、拦截、替换结果）→ 结果。Totoro 里工具执行前的 Java 校验对应的是执行前这一道。</td></tr>
+      <tr><td>审批 Approval</td><td>工具执行前弹一次窗问用户，同意才放行。没人回答就当拒绝。</td></tr>
+      <tr><td>守卫 Guard</td><td>只能“拒绝”或“不表态”的检查，不能改写调用。</td></tr>
+      <tr><td>沙箱 Sandbox</td><td>限制工具能启动什么进程、能碰什么。把文件系统和进程的提供方指向远程沙箱，Bash、终端这些工具就一起搬到沙箱里跑了。</td></tr>
+      <tr><td>上下文压缩</td><td>对话太长时，先把工具结果剪短，再不行就把前面的内容做成摘要，腾出窗口。</td></tr>
+      <tr><td>Scope 作用域</td><td>按 agent 划分的登记范围。一个工具或提示词片段要么全局可见，要么只属于一个 agent；同一个名字，局部的盖住全局的。</td></tr>
+    </table>
+
+    <div class="sub">怎么扩展</div>
+    <table class="tbl">
+      <tr><td>Seam 能力接缝</td><td>一项可以整体替换的能力，固定分三个角色：接口定义、提供方、使用方。比如 shell 的接口、本地 Bash 提供方、Bash 工具。换一个提供方，整个行为就变了。</td></tr>
+      <tr><td>LLM 适配器</td><td>把某家模型的接口接进来的插件，登记在 ctx.llm 上。换模型就是换这个插件。</td></tr>
+      <tr><td>Hook 钩子</td><td>挂在事件上的监听器，在不改循环的前提下加检查或处理。</td></tr>
+      <tr><td>Subagent</td><td>把一部分活委派给另一个 agent 去做。它的提供方也能换：可以新起一个子 agent，也可以把一轮交给别的产品。</td></tr>
+      <tr><td>Agent Teams</td><td>多个 agent 共用一块任务板来分工。</td></tr>
+      <tr><td>Jobs</td><td>后台跑的任务，模型可以用工具查看或停止。</td></tr>
+      <tr><td>MCP</td><td>接外部工具的协议，仓库里有专门的 mcp 包。</td></tr>
+    </table>
+
+    <div class="sub">工程</div>
+    <table class="tbl">
+      <tr><td>TypeScript + ESM</td><td>整个仓库用 TypeScript 写，模块全部是 ESM，编译开严格模式。</td></tr>
+      <tr><td>pnpm 工作区</td><td>整个仓库是一个 pnpm monorepo，按目录分组：core、llm、shell、sandbox、compaction、subagent 等几十个包。</td></tr>
+      <tr><td>SDK</td><td>给程序调用的接口，TypeScript 版走 JSON-RPC，另有 Python 版。</td></tr>
+      <tr><td>Electron</td><td>桌面应用，用 Electron 做，和命令行版共用产品数据。</td></tr>
+    </table>
+  </div>
+
+  <div class="foot">总管面 · DeepSeek Harness 技术栈</div>
+</div>
+</body>
+</html>
